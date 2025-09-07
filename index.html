@@ -162,6 +162,9 @@
       <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#cfe9ff; font-size:13px">
         <input id="useChatGPT" type="checkbox"> Use ChatGPT for replies (via proxy)
       </label>
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#cfe9ff; font-size:13px">
+        <input id="useContext" type="checkbox"> Use scene context (ρ, D, V, θ)
+      </label>
       <div id="chatgptConfig" style="display:none; gap:8px">
         <div>
           <label class="tiny">Proxy endpoint (recommended):</label>
@@ -401,6 +404,9 @@ const coachBody=byId('coachBody'), coachInput=byId('coachInput'), coachSend=byId
 const useChatGPTBox = byId('useChatGPT'), chatCfg = byId('chatgptConfig');
 const chatEndpoint = byId('chatEndpoint'), chatModel = byId('chatModel'), chatTemp = byId('chatTemp');
 let CHATGPT_ENABLED = false;
+const useContextBox = byId('useContext');
+let USE_CONTEXT = false;
+useContextBox?.addEventListener('change', () => { USE_CONTEXT = useContextBox.checked; });
 
 coachFab.addEventListener('click',()=>{ coachPanel.style.display = (coachPanel.style.display==='flex'?'none':'flex'); coachPanel.style.flexDirection='column'; });
 coachClose.addEventListener('click',()=>{ coachPanel.style.display='none'; });
@@ -460,15 +466,34 @@ On vane: |Fx|=${fmt(Math.abs(Fx_vane),3)} N (→ +x), |Fy|=${fmt(Math.abs(Fy_van
 
 /* ---------- ChatGPT via proxy ---------- */
 async function chatGPTReply(userText){
-  const Dm=S.Dcm/100, Ajet=A(Dm), mdot=S.rho*S.V*Ajet, th=S.theta*Math.PI/180;
-  const system = `You are an AI coach for CE2134 Fluid Mechanics (NUS). 
-Use steady control-volume momentum as on the slides (Example 6.4):
-ṁ = ρ V A, A = πD²/4; on-fluid: Fx = ṁ V (cosθ - 1), Fy = - ṁ V sinθ. 
-Force on the VANE is the opposite. Explain step-by-step concisely; keep symbols consistent.`;
-  const context = `Current water-jet case:
+  // Build the two system prompts
+  const systemGeneral = `You are an AI study coach for CE2134 Fluid Mechanics.
+Answer the user's question directly and clearly. Do NOT mention or refer to any
+on-screen scene or sliders unless the user asks. Use concise steps and keep units consistent.`;
+
+  const systemWithContext = `You are an AI coach for CE2134 Fluid Mechanics (NUS).
+Use steady control-volume momentum (Example 6.4): ṁ = ρ V A, A = πD²/4;
+on-fluid: Fx = ṁ V (cosθ - 1), Fy = - ṁ V sinθ. Force on the VANE is the opposite.
+Explain step-by-step, keep symbols consistent, and use the current on-screen sliders if relevant.`;
+
+  // Current slider context (only included when USE_CONTEXT is true)
+  const Dm = S.Dcm/100, Ajet = A(Dm), mdot = S.rho*S.V*Ajet;
+  const ctx = `Current scene:
 ρ=1000 kg/m³, D=${Dm.toFixed(3)} m, V=${S.V.toFixed(2)} m/s, θ=${S.theta.toFixed(1)}°.
-A=${Ajet.toExponential(6)} m², ṁ=${mdot.toFixed(3)} kg/s.
-Student question: ${userText}`;
+A=${Ajet.toExponential(6)} m², ṁ=${mdot.toFixed(3)} kg/s.`;
+
+  // Build messages depending on the toggle
+  let system = systemGeneral;
+  let messages = [{ role:'system', content: systemGeneral },
+                  { role:'user',   content: userText }];
+
+  if (USE_CONTEXT) {
+    system = systemWithContext;
+    messages = [
+      { role:'system', content: systemWithContext },
+      { role:'user',   content: ctx + "\n\nUser question: " + userText }
+    ];
+  }
 
   const ep = (chatEndpoint.value || "/api/chat").trim();
   const r = await fetch(ep, {
@@ -477,17 +502,15 @@ Student question: ${userText}`;
     body: JSON.stringify({
       model: (chatModel.value || "gpt-4o-mini"),
       temperature: parseFloat(chatTemp.value || "0.2"),
-      system,
-      messages: [
-        { role: "system", content: system },
-        { role: "user",   content: context }
-      ]
+      system,         // your proxy also accepts 'system' for convenience
+      messages
     })
   });
   if(!r.ok) throw new Error("Proxy error "+r.status);
   const data = await r.json();
   return data.reply || "No content from ChatGPT.";
 }
+
 
 /* ---------- Utility ---------- */
 function showFeedback(msg,kind){ const el=els.feedback; el.style.display='block'; el.textContent=msg; el.className='pill '+(kind||'warn');}
