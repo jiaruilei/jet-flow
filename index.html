@@ -1,15 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<!-- Load MathJax for LaTeX rendering -->
 <script>
-window.MathJax = {
-  tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
-  svg: { fontCache: 'global' }
-};
+  // We will not auto-typeset on page load (we append content later)
+  window.MathJax = {
+    startup: {
+      typeset: false,
+      ready: () => {
+        MathJax.startup.defaultReady();
+        window._mjReady = true; // flag so we know MathJax is ready
+      }
+    },
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: { fontCache: 'global' }  // or use chtml if you prefer HTML/CSS output
+  };
 </script>
-<script id="MathJax-script" async
-  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<script id="MathJax-script" defer
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
   
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -65,6 +75,7 @@ window.MathJax = {
   .quick{background:#0b1a36; border:1px solid #24304f; color:#cfe9ff; font-size:12px; padding:4px 6px; border-radius:8px; cursor:pointer}
   .coach-config{padding:8px 10px; border-top:1px solid #24304f; display:grid; gap:8px}
   .coach-config input{background:#091027;color:#e5e7eb;border:1px solid #24304f;border-radius:10px;padding:6px 8px;font-size:12px}
+  .coach-msg mjx-container { font-size: 1.05em; vertical-align: middle; }
 </style>
 </head>
 <body>
@@ -439,12 +450,40 @@ async function coachAsk(text){
   appendCoach(reply,false);
   coachBody.scrollTop = coachBody.scrollHeight;
 }
-function appendCoach(msg,isSelf){
-  const div=document.createElement('div'); div.className='coach-msg'+(isSelf?' coach-self':''); div.innerHTML=msg; coachBody.appendChild(div);
-    // Re-render MathJax equations inside the new message
-  if (window.MathJax) {
-    MathJax.typesetPromise([div]).catch(err => console.error("MathJax render error:", err));
+function sanitizeMath(msg) {
+  // 1) Remove triple-backtick code fences; MathJax intentionally skips code blocks.
+  //    This keeps normal formatting but lets LaTeX content be parsed.
+  msg = msg.replace(/```(?:\w+)?\s*([\s\S]*?)```/g, '$1');
+
+  // 2) Optional: collapse multiple blank lines (prettier)
+  msg = msg.replace(/\n{3,}/g, '\n\n');
+
+  return msg;
+}
+
+function typesetNow(el) {
+  // Wait until MathJax is ready, then typeset only this element
+  if (window.MathJax && window._mjReady) {
+    MathJax.typesetPromise([el]).catch(err => console.error('MathJax typeset error:', err));
+  } else {
+    // Try again shortly if MJ hasn’t finished booting
+    setTimeout(() => typesetNow(el), 120);
   }
+}
+
+function appendCoach(msg, isSelf) {
+  const div = document.createElement('div');
+  div.className = 'coach-msg' + (isSelf ? ' coach-self' : '');
+
+  // IMPORTANT: sanitize first so LaTeX isn't trapped in code fences
+  const cleaned = sanitizeMath(msg);
+  div.innerHTML = cleaned;
+
+  coachBody.appendChild(div);
+  coachBody.scrollTop = coachBody.scrollHeight;
+
+  // Now render any LaTeX in this new message
+  typesetNow(div);
 }
 
 /* ---------- Local (on-page) coach ---------- */
