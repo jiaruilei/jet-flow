@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Conservation of Momentum – Jet on a Vane (Water)</title>
+<style>
+  :root{ --bg:#0b1120; --panel:#0f172a; --ink:#e5e7eb; --muted:#94a3b8;
+         --accent:#22d3ee; --accent2:#60a5fa; --good:#34d399; --bad:#f87171; --warn:#fbbf24; }
+  *{box-sizing:border-box;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial}
+  body{margin:0;background:radial-gradient(120% 120% at 50% 0%,#0b1024 0%,#0b1120 60%,#0a0f1e 100%);color:var(--ink);font-size:16px}
+  .wrap{display:grid;grid-template-columns:minmax(380px,1fr) 460px;gap:18px;padding:18px;max-width:1400px;margin:0 auto;position:relative}
+  @media (max-width:1100px){.wrap{grid-template-columns:1fr}}
+  .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;box-shadow:0 6px 30px rgba(0,0,0,.25)}
+  h1{margin:0 0 8px;font-size:28px}
+  h2{margin:14px 0 8px;font-size:18px;color:var(--muted)}
+  canvas{width:100%;height:600px;border-radius:16px;display:block;background:linear-gradient(180deg,#07111f,#050c19)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+  .ctrl{background:#0b1224;border:1px solid #233159;color:var(--ink);border-radius:12px;padding:10px 12px;width:100%}
+  .num{display:flex;gap:8px;align-items:center}
+  .btn{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#001018;padding:10px 14px;border-radius:12px;font-weight:700;cursor:pointer}
+  .btn.secondary{background:#0b1224;color:var(--ink);border:1px solid #24304f}
+  .pill{background:#0d1428;border:1px solid #25365c;padding:10px 12px;border-radius:12px;font-size:14px}
+  .good{border-color:#1f7a5c;color:#8cf1c6}.bad{border-color:#7a1f25;color:#f9a3a3}.warn{border-color:#7a5a1f;color:#ffd27a}
+  .tiny{font-size:12px;color:var(--muted)}
+  .switch{display:flex;gap:8px;background:#0b1224;border:1px solid #24304f;padding:4px;border-radius:12px}
+  .switch button{background:transparent;border:none;color:#cfe9ff99;padding:6px 10px;border-radius:8px;cursor:pointer}
+  .switch .active{background:linear-gradient(135deg,#1b2a4a,#13203c);color:#cfe9ff}
+  .eq{font-family:ui-monospace,Consolas,monospace;background:#0b1224;border:1px dashed #2a3b62;border-radius:12px;padding:10px 12px;color:#b8c7ff}
+  .statement{background:#0b1224;border:1px solid #2a3b62;border-radius:12px;padding:12px;font-size:14px}
+  .dir{font-size:12px;color:#cfe9ffcc}
+
+  /* AI-COACH */
+  .coach-fab{
+    position:fixed; right:22px; bottom:22px; width:56px; height:56px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#001018; display:flex; align-items:center; justify-content:center;
+    font-weight:900; box-shadow:0 10px 30px rgba(0,0,0,.45); cursor:pointer; z-index:9999;
+  }
+  .coach-panel{
+    position:fixed; right:22px; bottom:86px; width:360px; max-height:64vh; display:none;
+    background:#0b1224; border:1px solid #233159; border-radius:16px; box-shadow:0 14px 40px rgba(0,0,0,.5); z-index:9999;
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .coach-header{padding:10px 12px; background:#0e1731; color:#cfe9ff; font-weight:700; font-size:14px; display:flex; justify-content:space-between; align-items:center}
+  .coach-body{padding:10px; overflow:auto; gap:8px; display:flex; flex-direction:column}
+  .coach-msg{background:#0f1a39; border:1px solid #24304f; color:#e7efff; padding:8px 10px; border-radius:10px; font-size:13px}
+  .coach-self{align-self:flex-end; background:#102140}
+  .coach-input{display:flex; gap:8px; padding:10px; border-top:1px solid #24304f; background:#0d152d}
+  .coach-input input{flex:1; background:#091027; color:#e5e7eb; border:1px solid #24304f; border-radius:10px; padding:8px 10px; font-size:13px}
+  .coach-input button{background:linear-gradient(135deg,var(--accent),var(--accent2)); border:none; border-radius:10px; padding:8px 10px; color:#001018; font-weight:800; cursor:pointer}
+  .coach-quick{display:flex; gap:6px; flex-wrap:wrap; padding:8px 10px; border-top:1px dashed #24304f}
+  .quick{background:#0b1a36; border:1px solid #24304f; color:#cfe9ff; font-size:12px; padding:4px 6px; border-radius:8px; cursor:pointer}
+  .coach-config{padding:8px 10px; border-top:1px solid #24304f; display:grid; gap:8px}
+  .coach-config input{background:#091027;color:#e5e7eb;border:1px solid #24304f;border-radius:10px;padding:6px 8px;font-size:12px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- VISUAL -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h1>Conservation of Momentum – Jet on a Vane</h1>
+        <div class="switch" role="tablist">
+          <button id="modeExplore" class="active" aria-selected="true">Explore</button>
+          <button id="modeQuiz" aria-selected="false">Quiz</button>
+        </div>
+      </div>
+
+      <div class="statement" id="stmt">
+        A water jet is deflected <b id="sTheta">60</b>° by a stationary vane (steady, gravity neglected).
+        The jet speed is <b id="sV">30.0</b> m/s and the diameter is <b id="sD">3.0</b> cm.
+        Find the force exerted by the jet on the vane: <i>Fx, Fy</i>.
+      </div>
+
+      <canvas id="scene" width="1200" height="600" aria-label="Jet hitting a vane"></canvas>
+
+      <div class="row" style="margin-top:8px">
+        <div class="pill"><b>Mass flow rate ṁ</b><br><span id="mdotTxt">–</span> kg/s</div>
+        <div class="pill"><b>Reminder</b><br><span class="tiny">
+          ṁ = ρ V A, A = πD²/4; ∑F = ṁ(v̄_out − v̄_in). (Force on vane = − force on fluid)
+        </span></div>
+      </div>
+      <div class="tiny" style="margin-top:8px">
+        Follows your momentum CV slides (Example 6.4).
+      </div>
+    </div>
+
+    <!-- PANEL -->
+    <div class="card" id="panelExplore" aria-live="polite">
+      <h2>Inputs (Explore)</h2>
+      <div class="row">
+        <div><label for="theta">Deflection angle θ (deg)</label>
+          <input id="theta" class="ctrl" type="range" min="0" max="160" step="1" value="60">
+          <div class="num"><input id="thetan" type="number" class="ctrl" step="1" value="60"><span class="tiny">°</span></div></div>
+        <div><label for="V">Jet speed V (m/s)</label>
+          <input id="V" class="ctrl" type="range" min="2" max="50" step="0.5" value="30">
+          <div class="num"><input id="Vn" type="number" class="ctrl" step="0.1" value="30"><span class="tiny">m/s</span></div></div>
+      </div>
+      <div class="row">
+        <div><label for="Dcm">Jet diameter D (cm)</label>
+          <input id="Dcm" class="ctrl" type="range" min="1" max="10" step="0.1" value="3">
+          <div class="num"><input id="Dcmn" type="number" class="ctrl" step="0.1" value="3"><span class="tiny">cm</span></div></div>
+        <div>
+          <label>Fluid density ρ (kg/m³)</label>
+          <input class="ctrl" value="1000 (water)" disabled>
+        </div>
+      </div>
+
+      <h2>Forces on vane (positive magnitudes)</h2>
+      <div class="row3">
+        <div class="pill"><b>|F<sub>x</sub>|</b><br><span id="Fx">–</span> N<br><span id="FxDir" class="dir">—</span></div>
+        <div class="pill"><b>|F<sub>y</sub>|</b><br><span id="Fy">–</span> N<br><span id="FyDir" class="dir">—</span></div>
+        <div class="pill"><b>|F|</b><br><span id="Fmag">–</span> N</div>
+      </div>
+
+      <h2>Equations</h2>
+      <div class="eq">
+        ṁ = ρ V A,&nbsp; A = π D²/4 &nbsp; | &nbsp;
+        (on fluid) Fₓ = ṁ V (cosθ − 1),&nbsp; Fᵧ = − ṁ V sinθ;&nbsp;
+        (on vane) is opposite → report magnitudes and directions.
+      </div>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="card" id="panelQuiz" style="display:none">
+      <h2>Quiz (Water jet → deflected by θ)</h2>
+      <div class="tiny">Given ρ=1000 kg/m³, D, V, θ. Enter |F<sub>x</sub>| and |F<sub>y</sub>| (force on vane). Tolerance: ±2% or ±0.5 N.</div>
+      <div class="pill" style="margin-top:8px"><b>Current problem</b><br><span id="qText">Press Start.</span></div>
+      <div class="row" style="margin-top:8px">
+        <div><label for="ansFx">Your |F<sub>x</sub>| (N)</label><input id="ansFx" class="ctrl" type="number" step="0.01" placeholder="|Fx|"></div>
+        <div><label for="ansFy">Your |F<sub>y</sub>| (N)</label><input id="ansFy" class="ctrl" type="number" step="0.01" placeholder="|Fy|"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="start" class="btn">Start Quiz</button>
+        <button id="check" class="btn" disabled>Check</button>
+        <button id="next" class="btn secondary" disabled>Next</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="pill"><b>Score</b><br><span id="score">0/0</span></div>
+        <div class="pill"><b>ṁ</b><br><span id="qMdot">–</span> kg/s</div>
+      </div>
+      <div id="feedback" class="pill warn" style="margin-top:8px; display:none"></div>
+
+      <h2>Worked solution</h2>
+      <div id="work" class="eq">—</div>
+    </div>
+  </div>
+
+  <!-- AI COACH -->
+  <div class="coach-fab" id="coachFab" title="AI Coach">🤖</div>
+  <div class="coach-panel" id="coachPanel" aria-live="polite">
+    <div class="coach-header">
+      <span>AI-Coach (Momentum CV)</span>
+      <button id="coachClose" class="btn secondary" style="padding:4px 8px;border-radius:8px">Close</button>
+    </div>
+
+    <!-- ChatGPT toggle + config (uses Node/Express proxy by default) -->
+    <div class="coach-config">
+      <label style="display:flex; align-items:center; gap:6px; cursor:pointer; color:#cfe9ff; font-size:13px">
+        <input id="useChatGPT" type="checkbox"> Use ChatGPT for replies (via proxy)
+      </label>
+      <div id="chatgptConfig" style="display:none; gap:8px">
+        <div>
+          <label class="tiny">Proxy endpoint (recommended):</label>
+          <input id="chatEndpoint" placeholder="/api/chat" value="/api/chat">
+        </div>
+        <div style="display:grid; gap:6px; grid-template-columns:1fr 1fr;">
+          <div>
+            <label class="tiny">Model</label>
+            <input id="chatModel" value="gpt-4o-mini">
+          </div>
+          <div>
+            <label class="tiny">Temperature</label>
+            <input id="chatTemp" type="number" step="0.1" min="0" max="2" value="0.2">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coach-body" id="coachBody">
+      <div class="coach-msg">Hi! I can give hints, explain the equations, or solve the current setup. Try the quick buttons below or type a question.</div>
+    </div>
+    <div class="coach-quick">
+      <button class="quick" data-q="Give me a hint.">Hint</button>
+      <button class="quick" data-q="Explain the equations.">Explain equations</button>
+      <button class="quick" data-q="Solve with current sliders.">Solve current case</button>
+      <button class="quick" data-q="Why is the horizontal force positive?">Sign of Fx/Fy</button>
+    </div>
+    <div class="coach-input">
+      <input id="coachInput" placeholder="Ask about Fx, Fy, signs, steps, or concepts…" />
+      <button id="coachSend">Send</button>
+    </div>
+  </div>
+
+<script>
+/* ---------- Helpers ---------- */
+const byId=id=>document.getElementById(id);
+const fmt=(x,d=3)=>Number.isFinite(x)?Number(x).toFixed(d):'–';
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const A = d => Math.PI*(d*d)/4;
+
+/* ---------- Elements ---------- */
+const c=byId('scene'), ctx=c.getContext('2d',{alpha:false});
+const els={
+  theta:byId('theta'), thetan:byId('thetan'),
+  V:byId('V'), Vn:byId('Vn'),
+  Dcm:byId('Dcm'), Dcmn:byId('Dcmn'),
+  sTheta:byId('sTheta'), sV:byId('sV'), sD:byId('sD'),
+  mdotTxt:byId('mdotTxt'),
+  Fx:byId('Fx'), Fy:byId('Fy'), Fmag:byId('Fmag'),
+  FxDir:byId('FxDir'), FyDir:byId('FyDir'),
+  modeExplore:byId('modeExplore'), modeQuiz:byId('modeQuiz'),
+  panelExplore:byId('panelExplore'), panelQuiz:byId('panelQuiz'),
+  start:byId('start'), check:byId('check'), next:byId('next'),
+  qText:byId('qText'), ansFx:byId('ansFx'), ansFy:byId('ansFy'),
+  score:byId('score'), qMdot:byId('qMdot'), feedback:byId('feedback'), work:byId('work')
+};
+
+/* ---------- State ---------- */
+let S={theta:60, V:30, Dcm:3, rho:1000, mdot:0, Fcvx:0, Fcvy:0, Fx_vane:0, Fy_vane:0, Fmag:0};
+let PATH={}; // geometry (straight → arc → downstream straight)
+
+/* ---------- Bind controls ---------- */
+[['theta',0,160,1],['V',2,50,0.1],['Dcm',1,10,0.1]].forEach(([k,min,max])=>{
+  const r=els[k], n=els[k+'n'];
+  const sync=(val)=>{ val=clamp(parseFloat(val),min,max); r.value=val; n.value=val; S[k]=val; compute(); updateStatement(); };
+  r.addEventListener('input',e=>sync(e.target.value));
+  n.addEventListener('change',e=>sync(e.target.value));
+});
+function setMode(which){
+  if(which==='explore'){ els.modeExplore.classList.add('active'); els.modeQuiz.classList.remove('active');
+    els.panelExplore.style.display='block'; els.panelQuiz.style.display='none'; }
+  else { els.modeQuiz.classList.add('active'); els.modeExplore.classList.remove('active');
+    els.panelExplore.style.display='none'; els.panelQuiz.style.display='block'; }
+}
+els.modeExplore.addEventListener('click',()=>setMode('explore'));
+els.modeQuiz.addEventListener('click',()=>setMode('quiz'));
+
+/* ---------- Momentum physics ---------- */
+function compute(){
+  const D = S.Dcm/100; // cm → m
+  const mdot = S.rho * S.V * A(D);
+  const th = S.theta*Math.PI/180;
+
+  // CV force on fluid
+  const Fcvx = mdot*(S.V*Math.cos(th) - S.V);
+  const Fcvy = mdot*( - S.V*Math.sin(th));
+
+  // Force on vane = - (force on fluid)
+  const Fx_vane = -Fcvx, Fy_vane = -Fcvy, Fmag = Math.hypot(Fx_vane, Fy_vane);
+
+  Object.assign(S,{mdot,Fcvx,Fcvy,Fx_vane,Fy_vane,Fmag});
+
+  els.mdotTxt.textContent=fmt(mdot,3);
+  els.Fx.textContent=fmt(Math.abs(Fx_vane),2);
+  els.Fy.textContent=fmt(Math.abs(Fy_vane),2);
+  els.Fmag.textContent=fmt(Fmag,2);
+  els.FxDir.textContent='direction: +x (to the right)';
+  els.FyDir.textContent='direction: +y (upward)';
+
+  buildPath();
+}
+function updateStatement(){ els.sTheta.textContent=S.theta.toString(); els.sV.textContent=fmt(S.V,1); els.sD.textContent=fmt(S.Dcm,1); }
+compute(); updateStatement();
+
+/* ---------- Jet path: straight → arc → downstream straight ---------- */
+function buildPath(){
+  const marginLeft = 60, baseY = c.height*0.42;
+  const L1 = 380, R = 260, L2 = 260, th = S.theta*Math.PI/180;
+
+  const p0 = {x:marginLeft, y:baseY};
+  const p1 = {x:marginLeft+L1, y:baseY};
+  const cx = p1.x, cy = baseY + R;
+  const startAng = -Math.PI/2, endAng = startAng + th;
+  const pe = {x: cx + R*Math.cos(endAng), y: cy + R*Math.sin(endAng)};
+  const Texit = {x: -Math.sin(endAng), y: Math.cos(endAng)};
+  const p2 = {x: pe.x + Texit.x*L2, y: pe.y + Texit.y*L2};
+
+  PATH = {p0,p1,cx,cy,R,startAng,endAng,pe,Texit,p2,baseY,th,L2};
+}
+function pathPoint(t){
+  const {p0,p1,cx,cy,R,startAng,endAng,pe,Texit,th,L2} = PATH;
+  const split1=0.50, split2=0.80;
+  if(t<=split1){ const u=t/split1; return {x:p0.x+u*(p1.x-p0.x), y:p0.y}; }
+  if(th<1e-3){ const u=(t-split1)/(1-split1); return {x:p1.x+u*(L2), y:p1.y}; }
+  if(t<=split2){ const u=(t-split1)/(split2-split1); const ang=startAng+u*(endAng-startAng); return {x:cx+R*Math.cos(ang), y:cy+R*Math.sin(ang)}; }
+  const u=(t-split2)/(1-split2); return {x:pe.x+Texit.x*(u*L2), y:pe.y+Texit.y*(u*L2)};
+}
+function pathTangent(t){
+  const eps=1e-4; const a=pathPoint(Math.max(0,t-eps)), b=pathPoint(Math.min(1,t+eps));
+  const vx=b.x-a.x, vy=b.y-a.y; const len=Math.hypot(vx,vy)||1; return {x:vx/len, y:vy/len};
+}
+
+/* ---------- Particles (lighter) ---------- */
+const particles=[]; const Ncols=80, Nrows=6;
+function seedParticles(){
+  particles.length=0;
+  for(let i=0;i<Ncols;i++) for(let j=0;j<Nrows;j++)
+    particles.push({s:(i/Ncols), n:((j+0.5)/Nrows - 0.5)*2, r:1.0+Math.random()*1.1, jitter:0.10+Math.random()*0.16});
+}
+seedParticles();
+function currentHalfWidthPx(){ const Dm=S.Dcm/100; const pxPerHalf=14/0.03; return Math.max(4, Dm*pxPerHalf); }
+function stepParticle(p){
+  p.s += (S.V/40)*0.016; if(p.s>1) p.s-=1;
+  const P=pathPoint(p.s), T=pathTangent(p.s), N={x:-T.y, y:T.x};
+  const w=currentHalfWidthPx(); const n=p.n+(Math.random()-0.5)*p.jitter*0.05;
+  p.x=P.x+N.x*n*w; p.y=P.y+N.y*n*w;
+}
+
+/* ---------- Quiz (always water) ---------- */
+const quiz={n:0,right:0,ansFx:0,ansFy:0,mdot:0};
+['start','check','next'].forEach(id=>byId(id)?.addEventListener('click',({target})=>{
+  if(target.id==='start') startQuiz();
+  if(target.id==='check') checkAnswer();
+  if(target.id==='next')  nextQ();
+}));
+['ansFx','ansFy'].forEach(id=>byId(id)?.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!byId('check').disabled) checkAnswer(); }));
+function startQuiz(){ quiz.n=0; quiz.right=0; els.score.textContent='0/0'; els.feedback.style.display='none'; els.work.textContent='—'; nextQ(); }
+function nextQ(){
+  quiz.n++; if(quiz.n>10){ els.qText.innerHTML=`Round complete! Final score: <b>${quiz.right}/10</b>.`; byId('check').disabled=true; byId('next').disabled=true; return; }
+  const Dcm=rnd(1.5,6.0), D=Dcm/100, V=rnd(5,40), theta=Math.round(rnd(15,120)), rho=1000;
+  const mdot=rho*V*A(D), th=theta*Math.PI/180;
+  const Fcvx=mdot*(V*Math.cos(th)-V), Fcvy=mdot*(-V*Math.sin(th));
+  const Fx_vane=Math.abs(-Fcvx), Fy_vane=Math.abs(-Fcvy);
+  Object.assign(quiz,{ansFx:Fx_vane, ansFy:Fy_vane, mdot});
+  els.qText.textContent=`Given ρ=${rho} kg/m³, D=${fmt(Dcm,1)} cm, V=${fmt(V,1)} m/s, θ=${theta}°. Enter |Fₓ| and |Fᵧ| (N) acting on the vane.`;
+  els.qMdot.textContent=fmt(mdot,3); els.ansFx.value=''; els.ansFy.value='';
+  byId('check').disabled=false; byId('next').disabled=true; els.feedback.style.display='none';
+  // mirror to Explore
+  Object.assign(S,{theta:theta,V:V,Dcm:Dcm}); compute(); updateStatement();
+  els.theta.value=theta; els.thetan.value=theta; els.V.value=V; els.Vn.value=V; els.Dcm.value=Dcm; els.Dcmn.value=Dcm;
+}
+function checkAnswer(){
+  const ux=parseFloat(els.ansFx.value), uy=parseFloat(els.ansFy.value);
+  if(!Number.isFinite(ux)||!Number.isFinite(uy)){ showFeedback('Please enter both |Fx| and |Fy|.','bad'); return; }
+  const tolFx=Math.max(0.5,Math.abs(quiz.ansFx)*0.02), tolFy=Math.max(0.5,Math.abs(quiz.ansFy)*0.02);
+  const okx=Math.abs(ux-quiz.ansFx)<=tolFx, oky=Math.abs(uy-quiz.ansFy)<=tolFy;
+  if(okx&&oky){ quiz.right++; showFeedback(`Correct! ✔ |Fx|=${fmt(quiz.ansFx,2)} N, |Fy|=${fmt(quiz.ansFy,2)} N.`,'good'); }
+  else{ showFeedback(`Not quite. ✖ |Fx|=${fmt(quiz.ansFx,2)} N, |Fy|=${fmt(quiz.ansFy,2)} N.`,'bad'); }
+  els.score.textContent=`${quiz.right}/${quiz.n}`; byId('check').disabled=true; byId('next').disabled=false;
+  const Fmag=Math.hypot(quiz.ansFx,quiz.ansFy);
+  els.work.textContent=`ṁ = ρ V A = ${fmt(quiz.mdot,3)} kg/s; A = πD²/4.
+For steady CV: ∑F = ṁ(v_out − v_in) (on fluid). Force on vane = −∑F.
+So |Fx| = ${fmt(quiz.ansFx,3)} N, |Fy| = ${fmt(quiz.ansFy,3)} N; |F| = ${fmt(Fmag,3)} N.`;
+}
+function showFeedback(msg,kind){ const el=els.feedback; el.style.display='block'; el.textContent=msg; el.className='pill '+(kind||'warn'); }
+function rnd(a,b){ return a + Math.random()*(b-a); }
+
+/* ---------- Drawing (nozzle scales with D) ---------- */
+function drawNozzle(){
+  const w=currentHalfWidthPx(), hOutlet=2*w, wall=Math.max(10,w*0.8), nozzleY=PATH.baseY-hOutlet/2-(wall-6)/2;
+  ctx.fillStyle='#2a3342'; ctx.fillRect(40,nozzleY,90,hOutlet+wall);
+  ctx.fillStyle='#415471'; ctx.fillRect(130,nozzleY+(wall/2),34,hOutlet);
+  ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=2; ctx.strokeRect(130,nozzleY+(wall/2),34,hOutlet);
+}
+function drawVaneFlat(){
+  const P=pathPoint(0.80), T=pathTangent(0.9999), angle=Math.atan2(T.y,T.x), N={x:-T.y,y:T.x};
+  const offset=-(currentHalfWidthPx()+14), centerX=P.x+N.x*offset, centerY=P.y+N.y*offset;
+  const plateLen=120, plateThk=Math.max(14,currentHalfWidthPx()*1.8);
+  ctx.save(); ctx.translate(centerX,centerY); ctx.rotate(angle);
+  const r=10; ctx.fillStyle='#3b4558'; ctx.strokeStyle='rgba(255,255,255,.25)'; ctx.lineWidth=2;
+  roundRect(ctx,-plateLen*0.5,-plateThk*0.5,plateLen,plateThk,r); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#1f2937'; ctx.fillRect(plateLen*0.5,-7,40,14);
+  ctx.restore();
+}
+function roundRect(ctx,x,y,w,h,r){const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.lineTo(x+w-rr,y);ctx.quadraticCurveTo(x+w,y,x+w,y+rr);ctx.lineTo(x+w,y+h-rr);ctx.quadraticCurveTo(x+w,y+h,x+w-rr,y+h);ctx.lineTo(x+rr,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-rr);ctx.lineTo(x,y+rr);ctx.quadraticCurveTo(x,y,x+rr,y);ctx.closePath();}
+
+function drawScene(){
+  ctx.fillStyle='#07111f'; ctx.fillRect(0,0,c.width,c.height);
+  drawNozzle();
+
+  // Jet corridor (clip) — includes downstream straight
+  const corridor=new Path2D(); buildCorridor(corridor); ctx.save(); ctx.clip(corridor);
+  for(const p of particles){ stepParticle(p); ctx.fillStyle='hsla(195,90%,70%,0.95)'; ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); }
+  ctx.restore();
+
+  // Centerline
+  ctx.strokeStyle='rgba(255,255,255,.15)'; ctx.lineWidth=1.4; ctx.setLineDash([6,6]);
+  ctx.beginPath(); for(let t=0;t<=1;t+=0.02){ const P=pathPoint(t); if(t===0) ctx.moveTo(P.x,P.y); else ctx.lineTo(P.x,P.y); } ctx.stroke(); ctx.setLineDash([]);
+
+  drawVaneFlat();
+
+  ctx.fillStyle='#cfe9ff'; ctx.font='14px ui-monospace,monospace';
+  ctx.fillText(`ρ = 1000 kg/m³  |  D = ${fmt(S.Dcm,1)} cm  |  V = ${fmt(S.V,1)} m/s  |  θ = ${S.theta}°`, 20, 34);
+  ctx.fillText(`|Fx| = ${fmt(Math.abs(S.Fx_vane||0),1)} N,  |Fy| = ${fmt(Math.abs(S.Fy_vane||0),1)} N`, c.width-320, 34);
+}
+function buildCorridor(path){
+  const w=currentHalfWidthPx(), offs1=[], offs2=[];
+  for(let t=0;t<=1;t+=0.02){ const P=pathPoint(t), T=pathTangent(t), N={x:-T.y,y:T.x}; offs1.push({x:P.x+N.x*w,y:P.y+N.y*w}); offs2.push({x:P.x-N.x*w,y:P.y-N.y*w}); }
+  path.moveTo(offs1[0].x,offs1[0].y); for(const q of offs1) path.lineTo(q.x,q.y); for(let i=offs2.length-1;i>=0;i--) path.lineTo(offs2[i].x,offs2[i].y); path.closePath();
+}
+function animate(){ drawScene(); requestAnimationFrame(animate); }
+requestAnimationFrame(animate);
+
+/* ---------- AI-COACH UI ---------- */
+const coachFab=byId('coachFab'), coachPanel=byId('coachPanel'), coachClose=byId('coachClose');
+const coachBody=byId('coachBody'), coachInput=byId('coachInput'), coachSend=byId('coachSend');
+const useChatGPTBox = byId('useChatGPT'), chatCfg = byId('chatgptConfig');
+const chatEndpoint = byId('chatEndpoint'), chatModel = byId('chatModel'), chatTemp = byId('chatTemp');
+let CHATGPT_ENABLED = false;
+
+coachFab.addEventListener('click',()=>{ coachPanel.style.display = (coachPanel.style.display==='flex'?'none':'flex'); coachPanel.style.flexDirection='column'; });
+coachClose.addEventListener('click',()=>{ coachPanel.style.display='none'; });
+document.querySelectorAll('.quick').forEach(b=>b.addEventListener('click',()=>coachAsk(b.dataset.q)));
+coachSend.addEventListener('click',()=>coachAsk(coachInput.value));
+coachInput.addEventListener('keydown',e=>{ if(e.key==='Enter') coachAsk(coachInput.value); });
+useChatGPTBox.addEventListener('change',()=>{ CHATGPT_ENABLED = useChatGPTBox.checked; chatCfg.style.display = CHATGPT_ENABLED ? 'grid' : 'none'; });
+
+async function coachAsk(text){
+  if(!text) return;
+  appendCoach(text,true);
+  coachInput.value='';
+  let reply;
+  try{
+    reply = CHATGPT_ENABLED ? await chatGPTReply(text) : coachReply(text.toLowerCase());
+  }catch(err){
+    reply = "I hit an error. If ChatGPT mode is on, please check the proxy endpoint/model.";
+    console.error(err);
+  }
+  appendCoach(reply,false);
+  coachBody.scrollTop = coachBody.scrollHeight;
+}
+function appendCoach(msg,isSelf){
+  const div=document.createElement('div'); div.className='coach-msg'+(isSelf?' coach-self':''); div.innerHTML=msg; coachBody.appendChild(div);
+}
+
+/* ---------- Local (on-page) coach ---------- */
+function coachReply(q){
+  const Dm=S.Dcm/100, Ajet=A(Dm), mdot=S.rho*S.V*Ajet;
+  const th=S.theta*Math.PI/180;
+  const Fx_fluid = mdot*(S.V*Math.cos(th)-S.V);
+  const Fy_fluid = mdot*(-S.V*Math.sin(th));
+  const Fx_vane  = -Fx_fluid, Fy_vane = -Fy_fluid, Fmag=Math.hypot(Fx_vane,Fy_vane);
+
+  if(q.includes('hint')) return `Use steady momentum CV (slides 17–21 & Example 6.4): ∑F = ṁ(v_out − v_in).
+ṁ = ρ V A, A = πD²/4; on-fluid: Fx=ṁV(cosθ−1), Fy=−ṁVsinθ; on-vane is opposite.`;
+
+  if(q.includes('explain')) return `CV momentum balance (steady): ∑F = Σ ṁ_out v_out − Σ ṁ_in v_in.
+For a jet deflected by θ: Fx = ṁ V (cosθ − 1), Fy = − ṁ V sinθ (on fluid). Vane feels the opposite.`;
+
+  if(q.includes('solve')) return worked();
+  if(q.includes('sign')||q.includes('positive')||q.includes('direction'))
+    return `Downward deflection: fluid loses +x and gains −y ⇒ Fx(on fluid) ≤ 0, Fy(on fluid) ≤ 0.
+Vane feels opposite: |Fx|=${fmt(Math.abs(Fx_vane),3)} N to +x, |Fy|=${fmt(Math.abs(Fy_vane),3)} N to +y.`;
+
+  if(q.includes('units')) return `SI units: ρ kg/m³, D m, V m/s ⇒ A m², ṁ kg/s, F newtons (N).`;
+  if(q.includes('area')||q.includes('diam')||q.includes('π')) return `A = πD²/4. With D=${fmt(Dm,3)} m ⇒ A=${fmt(Ajet,6)} m².`;
+  return worked();
+
+  function worked(){
+    return `Current case: ρ=1000 kg/m³, D=${fmt(Dm,3)} m, V=${fmt(S.V,2)} m/s, θ=${fmt(S.theta,1)}°.
+A=${fmt(Ajet,6)} m² ⇒ ṁ=${fmt(mdot,3)} kg/s.
+On fluid: Fx=${fmt(Fx_fluid,3)} N, Fy=${fmt(Fy_fluid,3)} N.
+On vane: |Fx|=${fmt(Math.abs(Fx_vane),3)} N (→ +x), |Fy|=${fmt(Math.abs(Fy_vane),3)} N (↑ +y), |F|=${fmt(Fmag,3)} N.`;
+  }
+}
+
+/* ---------- ChatGPT via proxy ---------- */
+async function chatGPTReply(userText){
+  const Dm=S.Dcm/100, Ajet=A(Dm), mdot=S.rho*S.V*Ajet, th=S.theta*Math.PI/180;
+  const system = `You are an AI coach for CE2134 Fluid Mechanics (NUS). 
+Use steady control-volume momentum as on the slides (Example 6.4):
+ṁ = ρ V A, A = πD²/4; on-fluid: Fx = ṁ V (cosθ - 1), Fy = - ṁ V sinθ. 
+Force on the VANE is the opposite. Explain step-by-step concisely; keep symbols consistent.`;
+  const context = `Current water-jet case:
+ρ=1000 kg/m³, D=${Dm.toFixed(3)} m, V=${S.V.toFixed(2)} m/s, θ=${S.theta.toFixed(1)}°.
+A=${Ajet.toExponential(6)} m², ṁ=${mdot.toFixed(3)} kg/s.
+Student question: ${userText}`;
+
+  const ep = (chatEndpoint.value || "/api/chat").trim();
+  const r = await fetch(ep, {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({
+      model: (chatModel.value || "gpt-4o-mini"),
+      temperature: parseFloat(chatTemp.value || "0.2"),
+      system,
+      messages: [
+        { role: "system", content: system },
+        { role: "user",   content: context }
+      ]
+    })
+  });
+  if(!r.ok) throw new Error("Proxy error "+r.status);
+  const data = await r.json();
+  return data.reply || "No content from ChatGPT.";
+}
+
+/* ---------- Utility ---------- */
+function showFeedback(msg,kind){ const el=els.feedback; el.style.display='block'; el.textContent=msg; el.className='pill '+(kind||'warn');}
+</script>
+</body>
+</html>
