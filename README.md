@@ -24,6 +24,8 @@ The API proxy runs separately with `npm install` and `npm start`; set `OPENAI_AP
 
 Deploy `server.js` to the Render service as well as the static frontend to GitHub Pages. `/api/health` reports the configured model and Render commit; successful chat responses also report the model returned by OpenAI.
 
+The Render service's main URL redirects to the lab on GitHub Pages. Its `/api/chat` and `/api/health` routes remain available at the Render address.
+
 MathJax 4.1.3 and its New Computer Modern fonts are installed through the package manager and served locally. Run `pnpm install --frozen-lockfile` followed by `pnpm run prepare:mathjax` to reproduce the committed browser assets. Equation rendering does not require a CDN. See the upstream [MathJax self-hosting guide](https://docs.mathjax.org/en/latest/web/hosting.html).
 
 ## Physical model

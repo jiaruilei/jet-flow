@@ -21,6 +21,9 @@ app.use(cors({
   ],
 }));
 
+// Open the learning interface when visitors follow the Render service link.
+app.get("/", (req, res) => res.redirect(302, "https://jiaruilei.github.io/jet-flow/"));
+
 // --- Health check (make sure Render's Health Check Path is set to this)
 app.get("/api/health", (req, res) => res.json({
   ok: true,
@@ -86,4 +89,3 @@ app.listen(port, () => {
   console.log(`AI coach proxy listening on :${port}`);
   console.log(`Health check at: http://localhost:${port}/api/health`);
 });
-
