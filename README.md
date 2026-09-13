@@ -6,21 +6,23 @@ An interactive conservation-of-momentum lab for a water jet deflected by a stati
 
 - **Explore:** vary jet speed, diameter, and deflection angle; compare horizontal, vertical, and resultant forces. Expand **Show calculations** for the live calculation trail, or **Method & assumptions** for the governing model.
 - **Quiz:** solve three cases using the displayed givens. Force magnitudes and worked solutions are revealed after checking an answer. Switching modes preserves each setup.
-- **Coach:** use local hints and explanations, or enable the existing ChatGPT proxy in Coach settings.
+- **Coach:** use the embedded chat below the lab for contextual questions, suggested prompts, and typeset equations. ChatGPT replies use the existing proxy, with local guidance available if it cannot connect. Coach settings can switch to local guidance explicitly.
 
 The diagram distinguishes blue velocity arrows from orange forces on the vane. Animation starts playing when the page opens and can be paused with the animation control.
 
 ## Run locally
 
-The frontend is static and requires no build. With Python 3 installed, run from this folder:
+The frontend is static; the committed MathJax browser assets need no build. With Python 3 installed, run from this folder:
 
 ```sh
 python -m http.server 4175 --bind 127.0.0.1
 ```
 
-Open http://127.0.0.1:4175. Any static web server can also serve this folder. Keep `index.html`, `styles.css`, and `app.js` together when deploying to GitHub Pages.
+Open http://127.0.0.1:4175. Any static web server can also serve this folder. Deploy the HTML, CSS, JavaScript, and `vendor/` directory together to GitHub Pages.
 
-The optional existing API proxy runs separately with `npm install` and `npm start`; set `OPENAI_API_KEY` in the server environment. The frontend's Coach settings retain the existing Render endpoint. Local coaching and the experiment work without an API key. MathJax is loaded from a CDN for optional coach equation rendering.
+The optional existing API proxy runs separately with `npm install` and `npm start`; set `OPENAI_API_KEY` in the server environment. The frontend's Coach settings retain the existing Render endpoint. Local coaching and the experiment work without an API key.
+
+MathJax 4.1.3 and its New Computer Modern fonts are installed through the package manager and served locally. Run `pnpm install --frozen-lockfile` followed by `pnpm run prepare:mathjax` to reproduce the committed browser assets. Equation rendering does not require a CDN. See the upstream [MathJax self-hosting guide](https://docs.mathjax.org/en/latest/web/hosting.html).
 
 ## Physical model
 
@@ -40,5 +42,8 @@ The force on the fluid is opposite to the force on the vane. Diagram geometry an
 
 - `index.html`: accessible learning interface and coach controls
 - `styles.css`: responsive CE2134 theme
-- `app.js`: physics, canvas, quiz, and coach behavior
+- `app.js`: physics, canvas, and quiz
+- `coach.js`: inline coach, conversation history, and local explanations
+- `math.js`: local MathJax startup and queued equation rendering
+- `scripts/vendor-mathjax.mjs`: copies installed MathJax browser assets for static hosting
 - `server.js`: existing optional ChatGPT proxy

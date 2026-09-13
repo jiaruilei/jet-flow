@@ -5,16 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Explore conservation of momentum with a water jet and a stationary vane. Change the jet, observe the forces, and check your understanding.">
   <title>Jet on a Vane (Week 6) · CE2134 Fluid Mechanics</title>
-  <link rel="stylesheet" href="styles.css?v=8468cc409e">
-  <script>
-    window.MathJax = {
-      startup: { typeset: false, ready: () => { MathJax.startup.defaultReady(); window._mjReady = true; } },
-      tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] },
-      svg: { fontCache: 'global' }
-    };
-  </script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-  <script defer src="app.js?v=da44d7e222"></script>
+  <link rel="stylesheet" href="styles.css?v=f558caf5fc">
+  <script defer src="math.js?v=0477a2f648"></script>
+  <script defer src="app.js?v=c67b0ada55"></script>
+  <script defer src="coach.js?v=dfbc3153db"></script>
 </head>
 <body>
   <a class="skip-link" href="#experiment">Skip to experiment</a>
@@ -25,7 +19,6 @@
         <button type="button" id="modeExplore" class="active" aria-pressed="true" aria-controls="panelExplore">Explore</button>
         <button type="button" id="modeQuiz" aria-pressed="false" aria-controls="panelQuiz">Quiz</button>
       </div>
-  <button class="coach-fab" id="coachFab" aria-label="Ask AI Coach" type="button" aria-expanded="false" aria-controls="coachPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5C9.5 6.2 6.5 9.4 6.5 13.2a5.5 5.5 0 0 0 11 0C17.5 9.4 14.5 6.2 12 2.5Z"/><path d="M8.7 14.1c1 .8 1.9 1.2 3.2 1.2 1.4 0 2.4-.5 3.4-1.3" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/></svg><span>Ask AI Coach</span></button>
     </header>
     <div class="workspace">
       <aside class="sidebar" aria-label="Experiment controls">
@@ -102,19 +95,32 @@
         </div>
       </section>
     </div>
-  </main>
-  <section class="coach-panel" id="coachPanel" aria-labelledby="coachHeading" style="display:none">
-    <div class="coach-header"><div><p class="eyebrow">Momentum · Study support</p><h2 id="coachHeading">Ask Prof. Gary’s AI Proxy</h2></div><button id="coachClose" class="btn secondary compact" type="button" aria-label="Close AI Coach">Close</button></div>
-    <div class="coach-body" id="coachBody" role="log" aria-live="polite" aria-label="Coach conversation"><div class="coach-msg">Ask for a hint, an explanation, or a worked example.</div></div>
-    <div class="coach-quick"><button class="quick" type="button" data-q="Give me a hint.">Give me a hint</button><button class="quick" type="button" data-q="Explain the equations.">Explain equations</button><button class="quick" type="button" data-q="Solve with current sliders.">Solve current case</button><button class="quick" type="button" data-q="Why is the horizontal force positive?">Force directions</button></div>
-    <div class="coach-input"><label for="coachInput" class="sr-only">Your question</label><input id="coachInput" placeholder="Ask about momentum or force…" maxlength="2000"><button id="coachSend" class="btn" type="button">Send</button></div>
-    <details class="coach-settings"><summary>Coach settings <span>Local guidance available</span></summary>
-      <div class="coach-config"><label class="toggle"><input id="useChatGPT" type="checkbox">Use ChatGPT for replies</label><label class="toggle"><input id="useContext" type="checkbox">Include the current jet in ChatGPT replies</label>
-        <div id="chatgptConfig" style="display:none"><label for="chatEndpoint">Proxy endpoint</label><input id="chatEndpoint" type="url" placeholder="/api/chat" value="https://jet-flow-1.onrender.com/api/chat">
-          <div class="config-row"><div><label for="chatModel">Model</label><input id="chatModel" value="gpt-4o-mini"></div><div><label for="chatTemp">Temperature</label><input id="chatTemp" type="number" step="0.1" min="0" max="2" value="0.2"></div></div>
-        </div>
+    <section class="coach-card" id="coachCard" aria-labelledby="coachTitle">
+      <div class="coach-header">
+        <h2 class="coach-title" id="coachTitle"><span class="coach-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5C9.5 6.2 6.5 9.4 6.5 13.2a5.5 5.5 0 0 0 11 0C17.5 9.4 14.5 6.2 12 2.5Z"/><path d="M8.7 14.1c1 .8 1.9 1.2 3.2 1.2 1.4 0 2.4-.5 3.4-1.3" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/></svg></span>Prof. Gary's AI Proxy</h2>
+        <span class="coach-status" id="coachStatus" role="status">Coach ready</span>
       </div>
-    </details>
-  </section>
+      <div class="coach-log" id="coachLog" role="log" aria-live="polite" aria-label="Coach conversation"></div>
+      <div class="coach-chips" aria-label="Suggested questions">
+        <button type="button" data-question="Give me a hint without revealing the answer.">Give me a hint</button>
+        <button type="button" data-question="Explain the momentum equations.">Explain equations</button>
+        <button type="button" data-question="Explain the directions of the forces on the vane.">Force directions</button>
+        <button type="button" data-question="Solve the current case.">Solve current case</button>
+      </div>
+      <form class="coach-form" id="coachForm">
+        <textarea id="coachQuestion" maxlength="2000" placeholder="Ask about the current jet…" aria-label="Question for Prof. Gary's AI Proxy"></textarea>
+        <button type="submit" id="coachSend">Ask</button>
+      </form>
+      <details class="coach-settings"><summary>Coach settings</summary>
+        <div class="coach-config">
+          <label class="toggle"><input id="useChatGPT" type="checkbox" checked>Use ChatGPT for replies</label>
+          <label class="toggle"><input id="useContext" type="checkbox" checked>Include the current jet</label>
+          <div id="chatgptConfig"><label for="chatEndpoint">Proxy endpoint</label><input id="chatEndpoint" type="url" placeholder="/api/chat" value="https://jet-flow-1.onrender.com/api/chat">
+            <div class="config-row"><div><label for="chatModel">Model</label><input id="chatModel" value="gpt-4o-mini"></div><div><label for="chatTemp">Temperature</label><input id="chatTemp" type="number" step="0.1" min="0" max="2" value="0.2"></div></div>
+          </div>
+        </div>
+      </details>
+    </section>
+  </main>
 </body>
 </html>

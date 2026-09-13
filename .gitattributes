@@ -1,0 +1,2 @@
+# Preserve installed third-party assets exactly and collapse them in code reviews.
+vendor/mathjax/** -text -whitespace linguist-vendored
