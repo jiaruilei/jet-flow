@@ -54,12 +54,12 @@
   }
 
   function sceneContext(){
-    const D=S.Dcm/100,area=A(D),mdot=S.rho*S.V*area,angle=S.theta*Math.PI/180;
+    const D=S.Dcm/100,area=A(D),mdot=S.rho*S.V*area,direction=jetDirection(S.theta);
     return {
       mode,quizProtected:mode==='quiz'&&!quiz.checked,
       question:mode==='quiz' ? quiz.n : null,
       rho:S.rho,D,Dcm:S.Dcm,V:S.V,theta:S.theta,area,mdot,
-      Fx:mdot*S.V*(1-Math.cos(angle)),Fy:mdot*S.V*Math.sin(angle)
+      Fx:mdot*S.V*(1-direction.cos),Fy:mdot*S.V*direction.sin
     };
   }
 
@@ -84,6 +84,9 @@ Enter both force magnitudes and select Check to reveal the numerical solution.`;
       if(Math.abs(scene.theta)<1e-9) return String.raw`At \(\theta=0^\circ\), the jet keeps its original velocity, so its momentum does not change:
 \[F_x=\dot m V(1-\cos0^\circ)=0,\qquad F_y=\dot m V\sin0^\circ=0.\]
 There is no net force on the vane, so neither component has a direction.`;
+      if(Math.abs(scene.theta-180)<1e-9) return String.raw`At \(\theta=180^\circ\), the jet reverses horizontally:
+\[F_x=2\dot m V=${fmt(scene.Fx,2)}\,\mathrm{N},\qquad F_y=0.\]
+The vane feels a rightward force. There is no vertical force.`;
       return String.raw`The fluid loses horizontal momentum and gains downward momentum, so the vane feels the opposite force: \(F_x\) acts rightward \((+x)\), and \(F_y\) acts upward \((+y)\).
 \[F_x=${fmt(scene.Fx,2)}\,\mathrm{N},\qquad F_y=${fmt(scene.Fy,2)}\,\mathrm{N}.\]`;
     }
@@ -93,7 +96,7 @@ There is no net force on the vane, so neither component has a direction.`;
 \[A=\frac{\pi(${fmt(scene.D,3)})^2}{4}=${fmt(scene.area,6)}\,\mathrm{m^2}.\]`;
 
     const magnitude=Math.hypot(scene.Fx,scene.Fy);
-    const direction=magnitude<1e-9 ? 'The jet is not deflected, so there is no net force on the vane.' : String.raw`The vane feels \(F_x\) to the right and \(F_y\) upward; the fluid feels the opposite force.`;
+    const direction=magnitude<1e-9 ? 'The jet is not deflected, so there is no net force on the vane.' : Math.abs(scene.Fy)<1e-9 ? String.raw`The vane feels \(F_x\) to the right, with no vertical force. The fluid feels the opposite force.` : String.raw`The vane feels \(F_x\) to the right and \(F_y\) upward; the fluid feels the opposite force.`;
     return String.raw`For \(D=${fmt(scene.D,3)}\,\mathrm{m}\), \(V=${fmt(scene.V,1)}\,\mathrm{m/s}\), and \(\theta=${scene.theta}^\circ\):
 \[A=\frac{\pi D^2}{4}=${fmt(scene.area,6)}\,\mathrm{m^2},\]
 \[\dot m=\rho V A=${fmt(scene.mdot,3)}\,\mathrm{kg/s}.\]
@@ -105,6 +108,7 @@ The resultant is \(|\mathbf F|=\sqrt{F_x^2+F_y^2}=${fmt(magnitude,2)}\,\mathrm{N
 
   async function proxyReply(question,scene,priorHistory){
     let system=String.raw`You are a concise AI study coach for CE2134 Fluid Mechanics. Use steady control-volume momentum for a stationary vane, neglecting gravity and losses. The jet turns downward: v_in=(V,0), v_out=(V cos(theta),-V sin(theta)); mdot=rho V pi D^2/4. Force on the VANE is Fx=mdot V(1-cos(theta)), Fy=mdot V sin(theta); force on the fluid is opposite. Zero deflection means zero force, with no force direction. Keep units consistent. Format every mathematical expression as LaTeX with \(...\) for inline math and \[...\] for display math. Do not use dollar delimiters, HTML, or code fences. Keep display equations short enough to read on a phone.`;
+    system+=' At 180 degrees the jet reverses horizontally: Fx=2 mdot V and Fy=0. The vane force points right and has no vertical component.';
     if(scene.quizProtected) system+=' The user is in an unchecked quiz. Give conceptual hints and symbolic equations only. Do not provide numerical force components, their resultant, or a completed numerical substitution, even if asked for the answer or if earlier messages contain a solution. Invite the user to select Check to reveal the solution.';
     system+=' Use the supplied scene values when relevant to the question. Keep replies brief, with a few clear steps and equations. Avoid Markdown headings and tables.';
     const givens=`Scene: mode=${scene.mode}; rho=${scene.rho} kg/m^3; D=${scene.D} m; V=${scene.V} m/s; theta=${scene.theta} degrees.\n\n`;

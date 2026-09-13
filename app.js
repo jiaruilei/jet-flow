@@ -3,6 +3,13 @@ const byId=id=>document.getElementById(id);
 const fmt=(x,d=3)=>Number.isFinite(x)?Number(x).toFixed(d):'–';
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const A = d => Math.PI*(d*d)/4;
+function jetDirection(degrees){
+  const radians=degrees*Math.PI/180;
+  return {
+    cos:degrees===90 ? 0 : Math.cos(radians),
+    sin:degrees===0||degrees===180 ? 0 : Math.sin(radians)
+  };
+}
 
 /* ---------- Elements ---------- */
 const c=byId('scene'), ctx=c.getContext('2d',{alpha:false});
@@ -43,8 +50,8 @@ function scientificTex(value,digits=3){
 }
 function makeCalculationTrail(values){
   const D=values.Dcm/100,area=A(D),mdot=values.rho*values.V*area;
-  const angle=values.theta*Math.PI/180;
-  const fx=mdot*values.V*(1-Math.cos(angle)),fy=mdot*values.V*Math.sin(angle);
+  const direction=jetDirection(values.theta);
+  const fx=mdot*values.V*(1-direction.cos),fy=mdot*values.V*direction.sin;
   return {
     calcArea:String.raw`\[\begin{aligned}A&=\frac{\pi D^2}{4}=\frac{\pi(${fmt(D,3)})^2}{4}\\&\approx ${scientificTex(area)}\,\mathrm{m^2}\end{aligned}\]`,
     calcMdot:String.raw`\[\begin{aligned}\dot m&=\rho V A\\&=${values.rho}(${fmt(values.V,1)})\frac{\pi(${fmt(D,3)})^2}{4}\\&\approx ${fmt(mdot,3)}\,\mathrm{kg/s}\end{aligned}\]`,
@@ -77,7 +84,7 @@ methodDetails?.addEventListener('toggle',()=>{if(methodDetails.open) window.rend
 solutionDetails?.addEventListener('toggle',()=>{if(solutionDetails.open) refreshWorkedSolution();});
 
 /* ---------- Bind controls ---------- */
-[['theta',0,160,1],['V',2,50,0.1],['Dcm',1,10,0.1]].forEach(([k,min,max])=>{
+[['theta',0,180,1],['V',2,50,0.1],['Dcm',1,10,0.1]].forEach(([k,min,max])=>{
   const r=els[k], n=els[k+'n'];
   const sync=(val)=>{
     const parsed=String(val).trim()==='' ? NaN : Number(val);
@@ -129,11 +136,11 @@ byId('pauseAnimation')?.addEventListener('click',()=>setAnimationPaused(!animati
 function compute(){
   const D = S.Dcm/100; // cm → m
   const mdot = S.rho * S.V * A(D);
-  const th = S.theta*Math.PI/180;
+  const direction=jetDirection(S.theta);
 
   // CV force on fluid
-  const Fcvx = mdot*(S.V*Math.cos(th) - S.V);
-  const Fcvy = mdot*( - S.V*Math.sin(th));
+  const Fcvx = mdot*(S.V*direction.cos - S.V);
+  const Fcvy = mdot*(-S.V*direction.sin);
 
   // Force on vane = - (force on fluid)
   const Fx_vane = -Fcvx, Fy_vane = -Fcvy, Fmag = Math.hypot(Fx_vane, Fy_vane);
@@ -159,8 +166,9 @@ function updateStatement(){ els.sTheta.textContent=S.theta.toString(); els.sV.te
 function buildPath(){
   const rawL1=280, rawR=155, rawL2=200, th=S.theta*Math.PI/180;
   const startAng=-Math.PI/2, endAng=startAng+th;
-  const Texit={x:Math.cos(th),y:Math.sin(th)};
-  const rawExit={x:rawL1+rawR*Math.sin(th),y:rawR*(1-Math.cos(th))};
+  const direction=jetDirection(S.theta);
+  const Texit={x:direction.cos,y:direction.sin};
+  const rawExit={x:rawL1+rawR*direction.sin,y:rawR*(1-direction.cos)};
   const rawEnd={x:rawExit.x+Texit.x*rawL2,y:rawExit.y+Texit.y*rawL2};
   // Fit the entire path, nozzle and labels inside the diagram area at every angle.
   const samples=[{x:0,y:0},rawEnd];
@@ -282,6 +290,13 @@ function drawNozzle(){
   ctx.fillStyle='#dce7f5';ctx.fillRect(x-58,y-w,58,w*2);
   ctx.strokeStyle='#48647e';ctx.lineWidth=2;ctx.strokeRect(x-15,y-w-11,15,w*2+22);
 }
+function drawDiameterLabel(){
+  const nozzleWidth=58,halfWidth=currentHalfWidthPx();
+  const x=PATH.p0.x-nozzleWidth/2,y=PATH.p0.y+halfWidth;
+  ctx.strokeStyle='#73879d';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(x,y+13);ctx.lineTo(x,y+29);ctx.stroke();
+  drawLabel(`D = ${fmt(S.Dcm,1)} cm`,x,y+(compactCanvas ? 61 : 53),'#526982',20);
+}
 function drawVaneFlat(){
   const {p1,cx,cy,R,startAng,endAng,th}=PATH;
   const radius=R+currentHalfWidthPx()+10;
@@ -328,15 +343,18 @@ function drawForceVectors(){
   ctx.fillText('FORCE ON VANE',compactCanvas ? 78 : 945,compactCanvas ? 602 : 159);
   const x=compactCanvas ? 112 : 974,y=compactCanvas ? 780 : 324;
   const maxForce=Math.max(S.Fx_vane,S.Fy_vane),maxLength=compactCanvas ? 137 : 117;
-  const lx=maxForce>1e-9 ? Math.max(14,S.Fx_vane/maxForce*maxLength) : 0;
-  const ly=maxForce>1e-9 ? Math.max(14,S.Fy_vane/maxForce*maxLength) : 0;
+  const lx=S.Fx_vane>1e-9 ? Math.max(14,S.Fx_vane/maxForce*maxLength) : 0;
+  const ly=S.Fy_vane>1e-9 ? Math.max(14,S.Fy_vane/maxForce*maxLength) : 0;
   const symbolicLength=compactCanvas ? maxLength : 100;
   const fxLength=revealed ? lx : symbolicLength,fyLength=revealed ? ly : symbolicLength;
-  if(maxForce>1e-9 || !revealed){
+  ctx.fillStyle=color;ctx.font=`600 ${compactCanvas ? 32 : 21}px system-ui, sans-serif`;
+  if(fxLength>0){
     drawArrow(x,y,x+fxLength,y,color,4);
+    ctx.fillText('Fₓ',x+fxLength+9,y+7);
+  }
+  if(fyLength>0){
     drawArrow(x,y,x,y-fyLength,color,4);
-    ctx.fillStyle=color;ctx.font=`600 ${compactCanvas ? 32 : 21}px system-ui, sans-serif`;
-    ctx.fillText('Fₓ',x+fxLength+9,y+7);ctx.fillText('Fᵧ',x+12,y-fyLength+2);
+    ctx.fillText('Fᵧ',x+12,y-fyLength+2);
   }
   ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
   ctx.font=`500 ${compactCanvas ? 32 : 19}px system-ui, sans-serif`;ctx.fillStyle='#42566e';
@@ -344,7 +362,8 @@ function drawForceVectors(){
   ctx.fillText(revealed ? `Fₓ  ${fmt(S.Fx_vane,1)} N` : 'Fₓ  Find the magnitude',valueX,compactCanvas ? 674 : 375);
   ctx.fillText(revealed ? `Fᵧ  ${fmt(S.Fy_vane,1)} N` : 'Fᵧ  Find the magnitude',valueX,compactCanvas ? 725 : 405);
   ctx.font=`${compactCanvas ? 26 : 17}px system-ui, sans-serif`;ctx.fillStyle='#64748b';
-  ctx.fillText(revealed ? (maxForce<1e-9 ? 'No deflection → no force' : '+x right · +y upward') : 'Revealed after Check',valueX,compactCanvas ? 788 : 449);
+  const forceDirection=maxForce<1e-9 ? 'No deflection → no force' : (S.Fy_vane<1e-9 ? 'Rightward only · Fᵧ = 0' : '+x right · +y upward');
+  ctx.fillText(revealed ? forceDirection : 'Revealed after Check',valueX,compactCanvas ? 788 : 449);
   if(compactCanvas){
     ctx.strokeStyle='#dce8f5';ctx.beginPath();ctx.moveTo(350,630);ctx.lineTo(350,805);ctx.stroke();
   }
@@ -376,11 +395,11 @@ function drawScene(delta=0){
     ctx.strokeStyle='#6e8197';ctx.lineWidth=1.8;ctx.setLineDash([5,5]);
     ctx.beginPath();ctx.moveTo(pe.x,pe.y);ctx.lineTo(pe.x+70,pe.y);ctx.stroke();ctx.setLineDash([]);
     ctx.beginPath();ctx.arc(pe.x,pe.y,41,0,PATH.th);ctx.stroke();
-    drawLabel(`θ = ${S.theta}°`,clamp(pe.x+83,140,820),clamp(pe.y+22,150,484),'#42566e',18);
+    const angleLabelY=S.theta>=150 ? pe.y+currentHalfWidthPx()+65 : pe.y+22;
+    drawLabel(`θ = ${S.theta}°`,clamp(pe.x+83,140,820),clamp(angleLabelY,150,515),'#42566e',18);
   }
   drawForceVectors();
-  ctx.fillStyle='#526982';ctx.font=`${compactCanvas ? 27 : 20}px system-ui, sans-serif`;
-  ctx.fillText(`D = ${fmt(S.Dcm,1)} cm`,42,compactCanvas ? 76 : 86);
+  drawDiameterLabel();
   if(compactCanvas) return;
   drawArrow(62,570,107,570,'#526982',2);drawArrow(62,570,62,531,'#526982',2);
   ctx.font='17px system-ui, sans-serif';ctx.fillStyle='#526982';ctx.fillText('+x',116,576);ctx.fillText('+y',49,527);
@@ -398,8 +417,11 @@ function animate(time){
 }
 function requestDraw(){
   if(!animationFrame) animationFrame=requestAnimationFrame(animate);
+  const forceSummary=S.Fmag<1e-9 ? 'There is no net force on the vane.' :
+    `Force on vane: ${fmt(S.Fx_vane,2)} newtons right. `+
+    (S.Fy_vane<1e-9 ? 'There is no vertical force.' : `${fmt(S.Fy_vane,2)} newtons upward.`);
   const summary=`Water jet at ${fmt(S.V,1)} metres per second and ${fmt(S.Dcm,1)} centimetres diameter, deflected ${S.theta} degrees downward. `+
-    (revealForces() ? `Force on vane: ${fmt(S.Fx_vane,2)} newtons right and ${fmt(S.Fy_vane,2)} newtons upward.` : 'Force magnitudes are hidden until you check your quiz answer.');
+    (revealForces() ? forceSummary : 'Force magnitudes are hidden until you check your quiz answer.');
   c.setAttribute('aria-label',summary);
 }
 function setAnimationPaused(paused){

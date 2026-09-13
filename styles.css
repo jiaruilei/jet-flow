@@ -203,11 +203,17 @@ input[type="checkbox"] {
 }
 .range-labels {
   display:flex;
-  justify-content:space-between;
+  flex-wrap:wrap;
+  align-items:baseline;
+  gap:8px;
   margin-top:7px;
-  color:#69778a;
-  font-size:10px
+  color:#526982;
+  font-size:13px;
+  font-weight:600;
+  line-height:1.5
 }
+.range-labels>span { white-space:nowrap; }
+.range-labels>span+span::before { content:"–"; margin-right:8px; color:#7c8c9f; }
 .fluid-note {
   display:flex;
   align-items:center;

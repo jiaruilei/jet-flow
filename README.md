@@ -4,7 +4,7 @@ An interactive conservation-of-momentum lab for a water jet deflected by a stati
 
 ## Learning activities
 
-- **Explore:** vary jet speed, diameter, and deflection angle; compare horizontal, vertical, and resultant forces. Expand **Show calculations** for typeset formulas and live numerical substitutions, or **Method & assumptions** for the governing equations.
+- **Explore:** vary jet speed, diameter, and deflection angle from 0° to 180°; compare horizontal, vertical, and resultant forces. Expand **Show calculations** for typeset formulas and live numerical substitutions, or **Method & assumptions** for the governing equations.
 - **Quiz:** solve three cases using the displayed givens. Force magnitudes and worked solutions are revealed after checking an answer. Switching modes preserves each setup.
 - **Coach:** use the embedded chat below the lab for contextual questions, suggested prompts, and typeset equations. GPT-6 Astra replies use the existing proxy, with local guidance available if it cannot connect. Settings are configured in source code and are hidden from the learning interface.
 
