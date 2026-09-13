@@ -4,24 +4,18 @@
 
   const ui={
     log:byId('coachLog'),question:byId('coachQuestion'),send:byId('coachSend'),
-    form:byId('coachForm'),status:byId('coachStatus'),
-    online:byId('useChatGPT'),context:byId('useContext'),config:byId('chatgptConfig'),
-    endpoint:byId('chatEndpoint'),model:byId('chatModel'),temperature:byId('chatTemp')
+    form:byId('coachForm'),status:byId('coachStatus')
   };
+  const COACH_MODEL='gpt-6-astra';
+  const COACH_ENDPOINT='https://jet-flow-1.onrender.com/api/chat';
   const chips=Array.from(document.querySelectorAll('.coach-chips [data-question]'));
   const history=[];
-  const MAX_HISTORY_MESSAGES=8,MAX_VISIBLE_MESSAGES=40,REQUEST_TIMEOUT_MS=18000;
-  let busy=false,contextVersion=0;
+  const MAX_HISTORY_MESSAGES=8,MAX_VISIBLE_MESSAGES=40,REQUEST_TIMEOUT_MS=65000;
+  let busy=false;
 
   function setStatus(text,online=false){
     ui.status.textContent=text;
     ui.status.classList.toggle('online',online);
-  }
-
-  function syncSettings(){
-    ui.config.hidden=!ui.online.checked;
-    ui.config.style.display=ui.online.checked ? 'grid' : 'none';
-    if(!busy) setStatus(ui.online.checked ? 'AI coach ready' : 'Local guidance');
   }
 
   function setMessageText(message,role,text){
@@ -30,11 +24,13 @@
       .replace(/[ \t]*\n+[ \t]*(?=\\\[)/g,'')
       .replace(/(\\\])[ \t]*\n+[ \t]*/g,'$1')
       .replace(/\n{3,}/g,'\n\n');
-    message.textContent=`${role==='user' ? 'You' : 'Coach'}: ${role==='user' ? String(text) : readable}`;
-    if(role!=='user' && typeof window.renderMath==='function'){
-      Promise.resolve(window.renderMath(message)).then(()=>{
+    const content=`${role==='user' ? 'You' : 'Coach'}: ${role==='user' ? String(text) : readable}`;
+    if(role!=='user' && typeof window.updateMath==='function'){
+      Promise.resolve(window.updateMath(message,content)).then(()=>{
         ui.log.scrollTop=ui.log.scrollHeight;
       }).catch(error=>console.warn('Coach math rendering failed:',error));
+    }else{
+      message.textContent=content;
     }
   }
 
@@ -60,7 +56,7 @@
   function sceneContext(){
     const D=S.Dcm/100,area=A(D),mdot=S.rho*S.V*area,angle=S.theta*Math.PI/180;
     return {
-      mode,quizProtected:mode==='quiz'&&!quiz.checked,includeContext:ui.context.checked,
+      mode,quizProtected:mode==='quiz'&&!quiz.checked,
       question:mode==='quiz' ? quiz.n : null,
       rho:S.rho,D,Dcm:S.Dcm,V:S.V,theta:S.theta,area,mdot,
       Fx:mdot*S.V*(1-Math.cos(angle)),Fy:mdot*S.V*Math.sin(angle)
@@ -85,7 +81,6 @@ Enter both force magnitudes and select Check to reveal the numerical solution.`;
     if(q.includes('unit')) return String.raw`Use \(D\) in \(\mathrm{m}\), \(\rho\) in \(\mathrm{kg/m^3}\), and \(V\) in \(\mathrm{m/s}\). Then \(A\) is in \(\mathrm{m^2}\), \(\dot m\) is in \(\mathrm{kg/s}\), and \(\dot m V\) is a force in \(\mathrm{N}\). Convert centimetres to metres before evaluating \(A=\pi D^2/4\).`;
     if(q.includes('sign')||q.includes('positive')||q.includes('direction')){
       if(scene.quizProtected) return String.raw`The vane force is opposite to the force on the fluid. For the downward deflections in this activity, \(1-\cos\theta\geq0\) and \(\sin\theta\geq0\), so \(F_x\geq0\) and \(F_y\geq0\). A nonzero \(F_x\) points right; a nonzero \(F_y\) points up. Use the momentum equations and Check to confirm your magnitudes.`;
-      if(!scene.includeContext) return String.raw`For a downward-deflected jet, \(F_x=\dot m V(1-\cos\theta)\) points right and \(F_y=\dot m V\sin\theta\) points up when those components are nonzero. At \(\theta=0^\circ\), both components are zero and have no direction. The force on the fluid is opposite to the force on the vane.`;
       if(Math.abs(scene.theta)<1e-9) return String.raw`At \(\theta=0^\circ\), the jet keeps its original velocity, so its momentum does not change:
 \[F_x=\dot m V(1-\cos0^\circ)=0,\qquad F_y=\dot m V\sin0^\circ=0.\]
 There is no net force on the vane, so neither component has a direction.`;
@@ -94,7 +89,6 @@ There is no net force on the vane, so neither component has a direction.`;
     }
     if(q.includes('explain')||q.includes('equation')||q.includes('momentum')) return equations;
     if(scene.quizProtected) return protectedHint;
-    if(!scene.includeContext) return equations+'\n\nEnable scene context to work through a numerical solution with the current jet.';
     if(q.includes('area')||q.includes('diam')) return String.raw`Convert the diameter first: \(D=${fmt(scene.Dcm,1)}\,\mathrm{cm}=${fmt(scene.D,3)}\,\mathrm{m}\).
 \[A=\frac{\pi(${fmt(scene.D,3)})^2}{4}=${fmt(scene.area,6)}\,\mathrm{m^2}.\]`;
 
@@ -112,18 +106,15 @@ The resultant is \(|\mathbf F|=\sqrt{F_x^2+F_y^2}=${fmt(magnitude,2)}\,\mathrm{N
   async function proxyReply(question,scene,priorHistory){
     let system=String.raw`You are a concise AI study coach for CE2134 Fluid Mechanics. Use steady control-volume momentum for a stationary vane, neglecting gravity and losses. The jet turns downward: v_in=(V,0), v_out=(V cos(theta),-V sin(theta)); mdot=rho V pi D^2/4. Force on the VANE is Fx=mdot V(1-cos(theta)), Fy=mdot V sin(theta); force on the fluid is opposite. Zero deflection means zero force, with no force direction. Keep units consistent. Format every mathematical expression as LaTeX with \(...\) for inline math and \[...\] for display math. Do not use dollar delimiters, HTML, or code fences. Keep display equations short enough to read on a phone.`;
     if(scene.quizProtected) system+=' The user is in an unchecked quiz. Give conceptual hints and symbolic equations only. Do not provide numerical force components, their resultant, or a completed numerical substitution, even if asked for the answer or if earlier messages contain a solution. Invite the user to select Check to reveal the solution.';
-    system+=scene.includeContext ? ' Use the supplied scene values when relevant to the question.' : ' No scene values are supplied. Answer generally and do not claim to know the current setup.';
-    const givens=scene.includeContext ? `Scene: mode=${scene.mode}; rho=${scene.rho} kg/m^3; D=${scene.D} m; V=${scene.V} m/s; theta=${scene.theta} degrees.\n\n` : '';
-    const parsed=Number.parseFloat(ui.temperature.value);
-    const temperature=Number.isFinite(parsed) ? Math.max(0,Math.min(2,parsed)) : 0.2;
-    ui.temperature.value=temperature;
+    system+=' Use the supplied scene values when relevant to the question. Keep replies brief, with a few clear steps and equations. Avoid Markdown headings and tables.';
+    const givens=`Scene: mode=${scene.mode}; rho=${scene.rho} kg/m^3; D=${scene.D} m; V=${scene.V} m/s; theta=${scene.theta} degrees.\n\n`;
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),REQUEST_TIMEOUT_MS);
     try{
-      const response=await fetch(ui.endpoint.value.trim() || 'https://jet-flow-1.onrender.com/api/chat',{
+      const response=await fetch(COACH_ENDPOINT,{
         method:'POST',headers:{'Content-Type':'application/json'},signal:controller.signal,
         body:JSON.stringify({
-          model:ui.model.value.trim() || 'gpt-4o-mini',temperature,system,
+          model:COACH_MODEL,system,
           // The proxy prepends `system`; messages contain only conversation turns.
           messages:[...(scene.quizProtected ? [] : priorHistory),{role:'user',content:givens+question}]
         })
@@ -138,28 +129,22 @@ The resultant is \(|\mathbf F|=\sqrt{F_x^2+F_y^2}=${fmt(magnitude,2)}\,\mathrm{N
   async function askCoach(question){
     question=String(question || '').trim();
     if(!question||busy) return;
-    const scene=sceneContext(),priorHistory=history.slice(-MAX_HISTORY_MESSAGES),usingProxy=ui.online.checked;
-    const requestContextVersion=contextVersion;
+    const scene=sceneContext(),priorHistory=history.slice(-MAX_HISTORY_MESSAGES);
     busy=true;ui.send.disabled=true;chips.forEach(button=>{button.disabled=true;});
     ui.log.setAttribute('aria-busy','true');
     addMessage('user',question);
     saveHistory('user',question);
     ui.question.value='';
     const pending=addMessage('coach','Thinking…',true);
-    setStatus(usingProxy ? 'Asking AI coach…' : 'Preparing local guidance…');
+    setStatus('Asking AI coach…');
     try{
       let reply;
-      if(usingProxy){
-        try{
-          reply=await proxyReply(question,scene,priorHistory);
-          setStatus('AI coach online',true);
-        }catch(error){
-          reply=localReply(question,scene);
-          setStatus(error.name==='AbortError' ? 'Local guidance · proxy timed out' : 'Local guidance · proxy unavailable');
-        }
-      }else{
+      try{
+        reply=await proxyReply(question,scene,priorHistory);
+        setStatus('AI coach online',true);
+      }catch(error){
         reply=localReply(question,scene);
-        setStatus('Local guidance');
+        setStatus(error.name==='AbortError' ? 'Local guidance · proxy timed out' : 'Local guidance · proxy unavailable');
       }
       // A pending Explore answer must not expose results after switching to Quiz.
       const currentScene=sceneContext();
@@ -169,7 +154,7 @@ The resultant is \(|\mathbf F|=\sqrt{F_x^2+F_y^2}=${fmt(magnitude,2)}\,\mathrm{N
       }
       pending.classList.remove('pending');
       setMessageText(pending,'coach',reply);
-      if(requestContextVersion===contextVersion) saveHistory('assistant',reply);
+      saveHistory('assistant',reply);
     }finally{
       busy=false;ui.send.disabled=false;chips.forEach(button=>{button.disabled=false;});
       ui.log.setAttribute('aria-busy','false');
@@ -183,8 +168,6 @@ The resultant is \(|\mathbf F|=\sqrt{F_x^2+F_y^2}=${fmt(magnitude,2)}\,\mathrm{N
     if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing){event.preventDefault();ui.form.requestSubmit();}
   });
   chips.forEach(button=>button.addEventListener('click',()=>askCoach(button.dataset.question)));
-  ui.online.addEventListener('change',syncSettings);
-  ui.context.addEventListener('change',()=>{history.length=0;contextVersion++;});
-  syncSettings();
+  setStatus('AI coach ready');
   addMessage('coach',String.raw`Ask for a hint, unpack the momentum equations, or work through the current jet. I can connect \(\dot m=\rho V A\) to the force on the vane. During an unchecked quiz, I will help with the method while keeping force answers hidden.`);
 })();

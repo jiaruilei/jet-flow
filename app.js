@@ -32,6 +32,49 @@ let animationPaused=false;
 let animationFrame=0, lastFrame=0;
 let compactCanvas=false;
 const quiz={n:0,right:0,answered:0,ansFx:0,ansFy:0,mdot:0,active:false,checked:false,complete:false,params:null};
+const calculationDetails=byId('calculationDetails'),methodDetails=byId('methodDetails'),solutionDetails=byId('solutionDetails');
+let calculationTrail={},workedSolution='Check your answer to reveal the worked solution.';
+
+/* ---------- Queued equation updates ---------- */
+function scientificTex(value,digits=3){
+  if(value===0) return '0';
+  const [coefficient,exponent]=value.toExponential(digits).split('e');
+  return String.raw`${coefficient}\times10^{${Number(exponent)}}`;
+}
+function makeCalculationTrail(values){
+  const D=values.Dcm/100,area=A(D),mdot=values.rho*values.V*area;
+  const angle=values.theta*Math.PI/180;
+  const fx=mdot*values.V*(1-Math.cos(angle)),fy=mdot*values.V*Math.sin(angle);
+  return {
+    calcArea:String.raw`\[\begin{aligned}A&=\frac{\pi D^2}{4}=\frac{\pi(${fmt(D,3)})^2}{4}\\&\approx ${scientificTex(area)}\,\mathrm{m^2}\end{aligned}\]`,
+    calcMdot:String.raw`\[\begin{aligned}\dot m&=\rho V A\\&=${values.rho}(${fmt(values.V,1)})\frac{\pi(${fmt(D,3)})^2}{4}\\&\approx ${fmt(mdot,3)}\,\mathrm{kg/s}\end{aligned}\]`,
+    calcFx:String.raw`\[\begin{aligned}F_x&=\dot m V(1-\cos\theta)\\&\approx ${fmt(mdot,3)}(${fmt(values.V,1)})(1-\cos${values.theta}^{\circ})\\&\approx ${fmt(fx,2)}\,\mathrm{N}\end{aligned}\]`,
+    calcFy:String.raw`\[\begin{aligned}F_y&=\dot m V\sin\theta\\&\approx ${fmt(mdot,3)}(${fmt(values.V,1)})\sin${values.theta}^{\circ}\\&\approx ${fmt(fy,2)}\,\mathrm{N}\end{aligned}\]`,
+    calcResult:String.raw`\[\begin{aligned}|\mathbf F|&=\sqrt{F_x^2+F_y^2}\\&\approx\sqrt{(${fmt(fx,2)})^2+(${fmt(fy,2)})^2}\\&\approx ${fmt(Math.hypot(fx,fy),2)}\,\mathrm{N}\end{aligned}\]`
+  };
+}
+function writeMath(element,update,options){
+  if(!element) return;
+  if(typeof window.updateMath==='function') return window.updateMath(element,update,options);
+  if(options?.when&&!options.when()) return;
+  if(typeof update==='function') update(element);else element.textContent=update;
+  return window.renderMath?.(element);
+}
+function refreshCalculations(delay=0){
+  if(!calculationDetails?.open||mode!=='explore') return;
+  writeMath(calculationDetails,()=>{
+    for(const [id,text] of Object.entries(calculationTrail)) if(byId(id)) byId(id).textContent=text;
+  },{delay,when:()=>calculationDetails.open&&mode==='explore'});
+}
+function refreshWorkedSolution(){
+  writeMath(els.work,()=>{
+    // Re-evaluate the guard when this queued update actually reaches the DOM.
+    els.work.textContent=quiz.checked ? workedSolution : 'Check your answer to reveal the worked solution.';
+  },{when:()=>solutionDetails?.open&&mode==='quiz'});
+}
+calculationDetails?.addEventListener('toggle',()=>{if(calculationDetails.open) refreshCalculations();});
+methodDetails?.addEventListener('toggle',()=>{if(methodDetails.open) window.renderMath?.(methodDetails);});
+solutionDetails?.addEventListener('toggle',()=>{if(solutionDetails.open) refreshWorkedSolution();});
 
 /* ---------- Bind controls ---------- */
 [['theta',0,160,1],['V',2,50,0.1],['Dcm',1,10,0.1]].forEach(([k,min,max])=>{
@@ -104,14 +147,8 @@ function compute(){
   els.FxDir.textContent=Fx_vane<1e-9 ? 'No horizontal force' : '+x · to the right';
   els.FyDir.textContent=Fy_vane<1e-9 ? 'No vertical force' : '+y · upward';
 
-  const trail={
-    calcArea:`A = π × (${fmt(D,3)} m)² / 4 = ${A(D).toExponential(3)} m²`,
-    calcMdot:`ṁ = 1000 × ${fmt(S.V,1)} × ${A(D).toExponential(3)} = ${fmt(mdot,3)} kg/s`,
-    calcFx:`Fₓ = ${fmt(mdot,3)} × ${fmt(S.V,1)} × (1 − cos ${S.theta}°) = ${fmt(Fx_vane,2)} N`,
-    calcFy:`Fᵧ = ${fmt(mdot,3)} × ${fmt(S.V,1)} × sin ${S.theta}° = ${fmt(Fy_vane,2)} N`,
-    calcResult:`|F| = √(Fₓ² + Fᵧ²) = ${fmt(Fmag,2)} N`
-  };
-  for(const [id,text] of Object.entries(trail)) if(byId(id)) byId(id).textContent=text;
+  calculationTrail=makeCalculationTrail(S);
+  refreshCalculations(120);
 
   buildPath();
   requestDraw();
@@ -209,8 +246,10 @@ function nextQ(){
   els.qMdot.textContent=fmt(mdot,3); els.ansFx.value=''; els.ansFy.value='';
   els.check.disabled=false; els.next.disabled=true; els.feedback.style.display='none';
   els.next.textContent=quiz.n===QUIZ_CASES ? 'Finish quiz' : 'Next question';
-  els.work.textContent='Check your answer to reveal the worked solution.';
-  byId('solutionDetails').open=false;
+  workedSolution='Check your answer to reveal the worked solution.';
+  solutionDetails.open=false;
+  // Clear both the visible answer and its registry entry before a new problem.
+  writeMath(els.work,workedSolution);
   setMode('quiz');
   els.ansFx.focus();
 }
@@ -224,11 +263,12 @@ function checkAnswer(){
   else{ showFeedback(`Not quite. ✖ |Fx|=${fmt(quiz.ansFx,2)} N, |Fy|=${fmt(quiz.ansFy,2)} N.`,'bad'); }
   quiz.checked=true; quiz.answered++;
   els.score.textContent=`${quiz.right}/${quiz.answered}`; byId('check').disabled=true; byId('next').disabled=false;
-  const Fmag=Math.hypot(quiz.ansFx,quiz.ansFy);
-  els.work.textContent=`ṁ = ρ V A = ${fmt(quiz.mdot,3)} kg/s; A = πD²/4.
-For steady CV: ∑F = ṁ(v_out − v_in) (on fluid). Force on vane = −∑F.
-So |Fx| = ${fmt(quiz.ansFx,3)} N, |Fy| = ${fmt(quiz.ansFy,3)} N; |F| = ${fmt(Fmag,3)} N.`;
-  byId('solutionDetails').open=true;
+  const solutionTrail=makeCalculationTrail({...quiz.params,rho:1000});
+  workedSolution=String.raw`For steady flow, \(\sum\mathbf F_{\mathrm{fluid}}=\dot m(\mathbf v_{\mathrm{out}}-\mathbf v_{\mathrm{in}})\). The force on the vane is opposite.
+${Object.values(solutionTrail).join('\n')}
+The nonzero vane-force components act rightward \((+x)\) and upward \((+y)\).`;
+  solutionDetails.open=true;
+  refreshWorkedSolution();
   requestDraw();
 }
 function showFeedback(msg,kind){ const el=els.feedback; el.style.display='block'; el.textContent=msg; el.className='pill '+(kind||'warn'); }

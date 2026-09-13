@@ -480,7 +480,7 @@ figcaption {
   font-size:11px;
   margin-bottom:3px
 }
-.method-steps span {
+.method-steps li>span {
   display:block;
   color:var(--muted);
   font-size:11px;
@@ -509,11 +509,15 @@ figcaption {
 }
 .calculation-row>div {
   color:#24456f;
-  font-size:11px;
+  font-size:13px;
   line-height:1.6;
   font-variant-numeric:tabular-nums;
   overflow-wrap:anywhere
 }
+.method-equation { color:#24456f; font-size:13px; }
+.below-scene mjx-container { max-width:100%; overflow-x:auto; overflow-y:hidden; }
+.below-scene mjx-container[display="true"] { margin:.55em 0!important; text-align:left!important; }
+.method-equation mjx-container[display="true"] { margin:.4em 0!important; }
 .quiz-only {
   display:none
 }
@@ -657,12 +661,6 @@ figcaption {
 .coach-form textarea:focus-visible { outline:3px solid #93b8ff; outline-offset:3px; }
 .coach-form button { border:0; border-radius:9px; color:#fff; background:var(--blue); font-weight:800; }
 .coach-form button:hover:not(:disabled) { background:var(--blue-dark); }
-.coach-settings { margin-top:14px; border-top:1px solid var(--line); }
-.coach-settings summary { padding:10px 0; color:var(--muted); font-size:11px; cursor:pointer; }
-.coach-config { display:grid; gap:8px; max-width:620px; }
-.coach-config label { font-size:12px; }
-.toggle { display:flex; justify-content:flex-start; align-items:center; font-weight:500; }
-.config-row { display:grid; grid-template-columns:1.2fr .8fr; gap:8px; margin-top:8px; }
 @media(max-width:790px) {
   .coach-card { padding:16px; }
   .coach-header { align-items:flex-start; flex-direction:column; }

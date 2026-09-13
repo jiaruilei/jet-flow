@@ -20,14 +20,60 @@
     }
   };
   let queue = Promise.resolve();
-  window.renderMath = element => {
+  const jobs = new WeakMap();
+  function enqueue(element, job) {
+    if (job.queued) return;
+    job.queued = true;
     queue = queue.then(async () => {
-      if (!(await ready) || !element?.isConnected || !MathJax.typesetPromise) return;
-      MathJax.typesetClear?.([element]);
-      await MathJax.typesetPromise([element]);
-    }).catch(error => console.warn('Equation rendering unavailable:', error));
-    return queue;
-  };
+      const available = await ready;
+      job.queued = false;
+      clearTimeout(job.timer);
+      job.timer = null;
+      const request = job.latest;
+      try {
+        if (!element.isConnected || (request.when && !request.when())) return;
+        // Clear the old MathJax registry before replacing any rendered nodes.
+        // All mutations share this queue with typesetting, including coach math.
+        if (request.update !== undefined || job.markup !== element.innerHTML) {
+          if (available) MathJax.typesetClear?.([element]);
+          if (typeof request.update === 'function') request.update(element);
+          else if (typeof request.update === 'string') element.textContent = request.update;
+          if (available && MathJax.typesetPromise) await MathJax.typesetPromise([element]);
+          job.markup = element.innerHTML;
+        }
+      } catch (error) {
+        console.warn('Equation rendering unavailable:', error);
+      } finally {
+        if (job.latest === request) {
+          job.resolvers.splice(0).forEach(resolve => resolve());
+        } else if (!job.timer && !job.queued) {
+          enqueue(element, job);
+        }
+      }
+    });
+  }
+  function scheduleMath(element, update, { delay = 0, when } = {}) {
+    if (!element) return Promise.resolve();
+    let job = jobs.get(element);
+    if (!job) {
+      job = { latest: null, queued: false, timer: null, markup: null, resolvers: [] };
+      jobs.set(element, job);
+    }
+    job.latest = { update, when };
+    clearTimeout(job.timer);
+    job.timer = null;
+    const completion = new Promise(resolve => job.resolvers.push(resolve));
+    if (delay > 0) {
+      job.timer = setTimeout(() => { job.timer = null; enqueue(element, job); }, delay);
+    } else {
+      enqueue(element, job);
+    }
+    return completion;
+  }
+  window.renderMath = element => scheduleMath(element);
+  // Debounced updates retain only the latest writer for an element. The optional
+  // guard is checked just before mutation so hidden or replaced quiz states stay safe.
+  window.updateMath = (element, update, options) => scheduleMath(element, update, options);
   const script = document.createElement('script');
   script.id = 'MathJax-script';
   script.async = true;
