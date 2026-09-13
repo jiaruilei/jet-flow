@@ -1,14 +1,14 @@
-# Jet on a Vane · CE2134
+# Jet on a Vane (Week 6) · CE2134
 
 An interactive conservation-of-momentum lab for a water jet deflected by a stationary vane. The interface follows the white-and-blue CE2134 design used in the Flowlines and hydrostatics labs.
 
 ## Learning activities
 
 - **Explore:** vary jet speed, diameter, and deflection angle; compare horizontal, vertical, and resultant forces. Expand **Show calculations** for the live calculation trail, or **Method & assumptions** for the governing model.
-- **Quiz:** solve ten cases using the displayed givens. Force magnitudes and worked solutions are revealed after checking an answer. Switching modes preserves each setup.
+- **Quiz:** solve three cases using the displayed givens. Force magnitudes and worked solutions are revealed after checking an answer. Switching modes preserves each setup.
 - **Coach:** use local hints and explanations, or enable the existing ChatGPT proxy in Coach settings.
 
-The diagram distinguishes blue velocity arrows from orange forces on the vane. Animation can be paused and respects the device's reduced-motion preference.
+The diagram distinguishes blue velocity arrows from orange forces on the vane. Animation starts playing when the page opens and can be paused with the animation control.
 
 ## Run locally
 

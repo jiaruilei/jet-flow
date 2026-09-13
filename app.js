@@ -23,12 +23,12 @@ const els={
 
 /* ---------- State ---------- */
 const DEFAULTS={theta:60, V:30, Dcm:3};
+const QUIZ_CASES=3;
 let S={...DEFAULTS, rho:1000, mdot:0, Fcvx:0, Fcvy:0, Fx_vane:0, Fy_vane:0, Fmag:0};
 let exploreInputs={...DEFAULTS};
 let mode='explore';
 let PATH={}; // geometry (straight → arc → downstream straight)
-const motionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
-let animationPaused=motionPreference.matches;
+let animationPaused=false;
 let animationFrame=0, lastFrame=0;
 let compactCanvas=false;
 const quiz={n:0,right:0,answered:0,ansFx:0,ansFy:0,mdot:0,active:false,checked:false,complete:false,params:null};
@@ -81,7 +81,6 @@ byId('resetExplore')?.addEventListener('click',()=>{
   setMode('explore');
 });
 byId('pauseAnimation')?.addEventListener('click',()=>setAnimationPaused(!animationPaused));
-motionPreference.addEventListener('change',event=>setAnimationPaused(event.matches));
 
 /* ---------- Momentum physics ---------- */
 function compute(){
@@ -191,9 +190,9 @@ function startQuiz(){
 }
 function nextQ(){
   if(!quiz.active || !quiz.checked || quiz.complete) return;
-  if(quiz.n>=10){
+  if(quiz.n>=QUIZ_CASES){
     quiz.complete=true;
-    els.qText.textContent=`Round complete. Final score: ${quiz.right}/10. Start a new round to practise again.`;
+    els.qText.textContent=`Round complete. Final score: ${quiz.right}/${QUIZ_CASES}. Start a new round to practise again.`;
     els.check.disabled=true; els.next.disabled=true;
     requestDraw();
     return;
@@ -206,10 +205,10 @@ function nextQ(){
   const Fcvx=mdot*(V*Math.cos(th)-V), Fcvy=mdot*(-V*Math.sin(th));
   const Fx_vane=Math.abs(-Fcvx), Fy_vane=Math.abs(-Fcvy);
   Object.assign(quiz,{ansFx:Fx_vane, ansFy:Fy_vane, mdot,checked:false,params:{theta,V,Dcm}});
-  els.qText.textContent=`Question ${quiz.n} of 10 · ρ = ${rho} kg/m³, D = ${fmt(Dcm,1)} cm, V = ${fmt(V,1)} m/s, θ = ${theta}°. Find |Fₓ| and |Fᵧ| on the vane.`;
+  els.qText.textContent=`Question ${quiz.n} of ${QUIZ_CASES} · ρ = ${rho} kg/m³, D = ${fmt(Dcm,1)} cm, V = ${fmt(V,1)} m/s, θ = ${theta}°. Find |Fₓ| and |Fᵧ| on the vane.`;
   els.qMdot.textContent=fmt(mdot,3); els.ansFx.value=''; els.ansFy.value='';
   els.check.disabled=false; els.next.disabled=true; els.feedback.style.display='none';
-  els.next.textContent=quiz.n===10 ? 'Finish quiz' : 'Next question';
+  els.next.textContent=quiz.n===QUIZ_CASES ? 'Finish quiz' : 'Next question';
   els.work.textContent='Check your answer to reveal the worked solution.';
   byId('solutionDetails').open=false;
   setMode('quiz');
