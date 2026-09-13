@@ -4,7 +4,7 @@ An interactive conservation-of-momentum lab for a water jet deflected by a stati
 
 ## Learning activities
 
-- **Explore:** vary jet speed, diameter, and deflection angle; compare horizontal, vertical, and resultant forces with a live calculation trail.
+- **Explore:** vary jet speed, diameter, and deflection angle; compare horizontal, vertical, and resultant forces. Expand **Show calculations** for the live calculation trail, or **Method & assumptions** for the governing model.
 - **Quiz:** solve ten cases using the displayed givens. Force magnitudes and worked solutions are revealed after checking an answer. Switching modes preserves each setup.
 - **Coach:** use local hints and explanations, or enable the existing ChatGPT proxy in Coach settings.
 

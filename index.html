@@ -25,12 +25,12 @@
         <button type="button" id="modeExplore" class="active" aria-pressed="true" aria-controls="panelExplore">Explore</button>
         <button type="button" id="modeQuiz" aria-pressed="false" aria-controls="panelQuiz">Quiz</button>
       </div>
+  <button class="coach-fab" id="coachFab" aria-label="Ask AI Coach" type="button" aria-expanded="false" aria-controls="coachPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5C9.5 6.2 6.5 9.4 6.5 13.2a5.5 5.5 0 0 0 11 0C17.5 9.4 14.5 6.2 12 2.5Z"/><path d="M8.7 14.1c1 .8 1.9 1.2 3.2 1.2 1.4 0 2.4-.5 3.4-1.3" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/></svg><span>Ask AI Coach</span></button>
     </header>
     <div class="workspace">
       <aside class="sidebar" aria-label="Experiment controls">
         <section id="panelExplore" aria-labelledby="exploreHeading">
-          <div class="section-heading"><span class="step">01</span><h2 id="exploreHeading">Set up the jet</h2></div>
-          <p class="hint">Change one input and watch how the force on the vane responds.</p>
+          <div class="section-heading"><h2 id="exploreHeading">Jet inputs</h2></div>
           <div class="control-group">
             <label for="theta">Deflection angle <span>θ</span></label>
             <input id="theta" type="range" min="0" max="160" step="1" value="60" aria-label="Deflection angle in degrees">
@@ -51,64 +51,62 @@
           </div>
           <div class="fluid-note"><span class="water-dot" aria-hidden="true"></span><div><strong>Water</strong><span>ρ = 1000 kg/m³</span></div><span class="fixed-label">Fixed</span></div>
           <button id="resetExplore" type="button" class="btn secondary full">Reset inputs</button>
-          <div class="try-card"><h3>Try this</h3><p>Predict what happens to the force when you double the jet speed. Then use the sliders to check.</p></div>
         </section>
         <section id="panelQuiz" style="display:none" aria-labelledby="quizHeading">
-          <div class="section-heading"><span class="step">01</span><h2 id="quizHeading">Check your understanding</h2></div>
-          <p class="hint">10 water-jet cases. Calculate the force magnitudes on the vane, then check your answer.</p>
+          <div class="section-heading"><h2 id="quizHeading">Quiz</h2></div>
+          <p class="hint">10 cases · Find |Fₓ| and |Fᵧ| on the vane.</p>
           <div class="question-card"><h3>Current problem</h3><p id="qText">Press Start quiz to begin.</p></div>
           <div class="answer-fields">
             <div><label for="ansFx"><span>Horizontal |F<sub>x</sub>|</span><span>N</span></label><input id="ansFx" type="number" min="0" step="0.01" placeholder="Your answer" inputmode="decimal"></div>
             <div><label for="ansFy"><span>Vertical |F<sub>y</sub>|</span><span>N</span></label><input id="ansFy" type="number" min="0" step="0.01" placeholder="Your answer" inputmode="decimal"></div>
           </div>
-          <p class="tiny">Accepted tolerance: ±2% or ±0.5 N, whichever is larger.</p>
+          <p class="tiny">Tolerance: ±2% or ±0.5 N, whichever is larger.</p>
           <div class="quiz-actions"><button id="start" class="btn" type="button">Start quiz</button><button id="check" class="btn" type="button" disabled>Check answer</button><button id="next" class="btn secondary" type="button" disabled>Next case</button></div>
           <div class="quiz-stats"><div><span>Score</span><strong id="score" aria-live="polite">0/0</strong></div><div><span>Mass flow rate</span><strong><span id="qMdot">–</span> <small>kg/s</small></strong></div></div>
           <div id="feedback" class="pill warn" role="status" style="display:none"></div>
         </section>
       </aside>
       <section class="experiment" id="experiment" tabindex="-1" aria-label="Jet visualization and calculations">
-        <div class="lesson-intro"><div><p class="eyebrow">Observe · Explain</p><h2>From turning flow to force</h2></div><span class="assumption-tag">Steady flow · Stationary vane</span></div>
-        <p class="statement" id="stmt">A water jet at <strong id="sV">30.0</strong> m/s with diameter <strong id="sD">3.0</strong> cm is deflected downward by <strong id="sTheta">60</strong>°. Find the force exerted by the jet on the vane.</p>
+        <div class="lesson-intro"><h2>Forces on the vane</h2><span class="assumption-tag">Steady water jet</span></div>
+        <p class="sr-only" id="stmt">A water jet at <strong id="sV">30.0</strong> m/s with diameter <strong id="sD">3.0</strong> cm is deflected downward by <strong id="sTheta">60</strong>°.</p>
         <div class="metrics explore-only" aria-label="Forces on the vane">
           <div class="metric"><span class="metric-label">Horizontal |F<sub>x</sub>|</span><div><strong id="Fx">–</strong><span class="unit">N</span></div><span id="FxDir" class="direction">+x · right</span></div>
           <div class="metric"><span class="metric-label">Vertical |F<sub>y</sub>|</span><div><strong id="Fy">–</strong><span class="unit">N</span></div><span class="direction" id="FyDir">+y · up</span></div>
           <div class="metric resultant"><span class="metric-label">Resultant |F|</span><div><strong id="Fmag">–</strong><span class="unit">N</span></div><span class="direction">Force on the vane</span></div>
         </div>
-        <div class="quiz-only quiz-guide"><strong>Predict before checking.</strong> Force magnitudes and the worked solution appear after you submit an answer.</div>
+        <div class="quiz-only quiz-guide">Check your answer to reveal the forces.</div>
         <figure class="diagram-card">
           <div class="diagram-header"><h3>Jet deflection</h3><button id="pauseAnimation" type="button" class="btn secondary compact" aria-pressed="false">Pause animation</button></div>
           <canvas id="scene" width="1200" height="600" role="img" aria-label="Water jet entering from the left and turning downward along a stationary vane. Blue arrows show velocity; force arrows act rightward and upward on the vane.">The jet enters horizontally and leaves at the selected downward deflection angle. The force on the vane acts in the opposite direction to the change in fluid momentum.</canvas>
           <figcaption><div class="legend"><span><i class="legend-mark velocity"></i>Velocity</span><span><i class="legend-mark force"></i>Force on vane</span></div><span id="sceneStatus">Animation running</span></figcaption>
         </figure>
         <div class="below-scene">
-          <section class="method-card" aria-labelledby="methodHeading">
-            <div class="section-heading"><span class="step">02</span><h2 id="methodHeading">Apply momentum</h2></div>
+          <details class="method-card" id="methodDetails">
+            <summary id="methodHeading">Method &amp; assumptions</summary>
             <ol class="method-steps">
-              <li><strong>Find the mass flow</strong><span>Convert D to metres. Use A = πD²/4 and ṁ = ρVA.</span></li>
-              <li><strong>Balance the fluid momentum</strong><span>∑F = ṁ(v<sub>out</sub> − v<sub>in</sub>). Take +x right and +y up.</span></li>
-              <li><strong>Reverse the force</strong><span>The jet pushes on the vane with the opposite force to that on the fluid.</span></li>
+              <li><strong>Mass flow</strong><span>A = πD²/4; ṁ = ρVA. Use D in metres.</span></li>
+              <li><strong>Fluid momentum</strong><span>∑F = ṁ(v<sub>out</sub> − v<sub>in</sub>).</span></li>
+              <li><strong>Force on vane</strong><span>Opposite to the force on the fluid.</span></li>
             </ol>
-            <p class="assumptions">Ideal model: equal inlet and outlet speed, atmospheric jet pressure, and negligible gravity and losses.</p>
-          </section>
-          <section class="calculation-card explore-only" aria-labelledby="calculationHeading">
-            <div class="section-heading"><span class="step">03</span><h2 id="calculationHeading">Calculation trail</h2></div>
+            <p class="assumptions">Stationary vane; equal inlet/outlet speed; atmospheric pressure; negligible gravity and losses. +x right, +y up. Diagram is schematic.</p>
+          </details>
+          <details class="calculation-card explore-only" id="calculationDetails">
+            <summary id="calculationHeading">Show calculations</summary>
             <div class="calculation-row"><span>Cross-sectional area</span><div id="calcArea">A = πD²/4</div></div>
             <div class="calculation-row"><span>Mass flow rate</span><div id="calcMdot">ṁ = ρVA</div><span class="sr-only"><span id="mdotTxt">–</span> kg/s</span></div>
             <div class="calculation-row"><span>Horizontal force on vane</span><div id="calcFx">Fₓ = ṁV(1 − cos θ)</div></div>
             <div class="calculation-row"><span>Vertical force on vane</span><div id="calcFy">Fᵧ = ṁV sin θ</div></div>
             <div class="calculation-row"><span>Resultant</span><div id="calcResult">|F| = √(Fₓ² + Fᵧ²)</div></div>
-          </section>
-          <section class="calculation-card quiz-only" aria-labelledby="solutionHeading"><div class="section-heading"><span class="step">03</span><h2 id="solutionHeading">Worked solution</h2></div><div id="work" class="eq">Check your answer to reveal the calculation.</div></section>
+          </details>
+          <details class="calculation-card quiz-only" id="solutionDetails"><summary id="solutionHeading">Worked solution</summary><div id="work" class="eq">Check your answer to reveal the calculation.</div></details>
         </div>
       </section>
     </div>
-    <footer class="lab-footer"><span>CE2134 · Momentum control volume · Example 6.4</span><span>Explore the flow. Explain the force.</span></footer>
+    <footer class="lab-footer">CE2134 · Example 6.4</footer>
   </main>
-  <button class="coach-fab" id="coachFab" type="button" aria-expanded="false" aria-controls="coachPanel"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.5C9.5 6.2 6.5 9.4 6.5 13.2a5.5 5.5 0 0 0 11 0C17.5 9.4 14.5 6.2 12 2.5Z"/><path d="M8.7 14.1c1 .8 1.9 1.2 3.2 1.2 1.4 0 2.4-.5 3.4-1.3" fill="none" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/></svg><span>Ask AI Coach</span></button>
   <section class="coach-panel" id="coachPanel" aria-labelledby="coachHeading" style="display:none">
     <div class="coach-header"><div><p class="eyebrow">Momentum · Study support</p><h2 id="coachHeading">Ask Prof. Gary’s AI Proxy</h2></div><button id="coachClose" class="btn secondary compact" type="button" aria-label="Close AI Coach">Close</button></div>
-    <div class="coach-body" id="coachBody" role="log" aria-live="polite" aria-label="Coach conversation"><div class="coach-msg">Explore a jet or try a quiz case. Ask for a hint, an explanation of the signs, or a worked example.</div></div>
+    <div class="coach-body" id="coachBody" role="log" aria-live="polite" aria-label="Coach conversation"><div class="coach-msg">Ask for a hint, an explanation, or a worked example.</div></div>
     <div class="coach-quick"><button class="quick" type="button" data-q="Give me a hint.">Give me a hint</button><button class="quick" type="button" data-q="Explain the equations.">Explain equations</button><button class="quick" type="button" data-q="Solve with current sliders.">Solve current case</button><button class="quick" type="button" data-q="Why is the horizontal force positive?">Force directions</button></div>
     <div class="coach-input"><label for="coachInput" class="sr-only">Your question</label><input id="coachInput" placeholder="Ask about momentum or force…" maxlength="2000"><button id="coachSend" class="btn" type="button">Send</button></div>
     <details class="coach-settings"><summary>Coach settings <span>Local guidance available</span></summary>

@@ -429,6 +429,7 @@ figcaption {
 .below-scene {
   display:grid;
   grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);
+  align-items:start;
   gap:14px;
   margin-top:16px
 }
@@ -441,6 +442,15 @@ figcaption {
 }
 .below-scene h2 {
   font-size:14px
+}
+.below-scene summary {
+  color:#24456f;
+  font-size:13px;
+  font-weight:750;
+  cursor:pointer;
+}
+.below-scene details[open] summary {
+  margin-bottom:12px;
 }
 .method-steps {
   list-style:none;
@@ -988,4 +998,20 @@ figcaption {
   button {
     transition:none
   }
+}
+@media(max-width:500px) {
+  .topbar { position:relative; }
+  .topbar>div:first-child { padding-right:48px; }
+  .coach-fab {
+    position:absolute;
+    top:24px;
+    right:16px;
+    bottom:auto;
+    width:44px;
+    height:44px;
+    padding:10px;
+    justify-content:center;
+    border-radius:12px;
+  }
+  .coach-fab>span { display:none; }
 }

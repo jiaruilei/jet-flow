@@ -211,6 +211,7 @@ function nextQ(){
   els.check.disabled=false; els.next.disabled=true; els.feedback.style.display='none';
   els.next.textContent=quiz.n===10 ? 'Finish quiz' : 'Next question';
   els.work.textContent='Check your answer to reveal the worked solution.';
+  byId('solutionDetails').open=false;
   setMode('quiz');
   els.ansFx.focus();
 }
@@ -228,6 +229,7 @@ function checkAnswer(){
   els.work.textContent=`ṁ = ρ V A = ${fmt(quiz.mdot,3)} kg/s; A = πD²/4.
 For steady CV: ∑F = ṁ(v_out − v_in) (on fluid). Force on vane = −∑F.
 So |Fx| = ${fmt(quiz.ansFx,3)} N, |Fy| = ${fmt(quiz.ansFy,3)} N; |F| = ${fmt(Fmag,3)} N.`;
+  byId('solutionDetails').open=true;
   requestDraw();
 }
 function showFeedback(msg,kind){ const el=els.feedback; el.style.display='block'; el.textContent=msg; el.className='pill '+(kind||'warn'); }
@@ -338,23 +340,11 @@ function drawScene(delta=0){
     drawLabel(`θ = ${S.theta}°`,clamp(pe.x+83,140,820),clamp(pe.y+22,150,484),'#42566e',18);
   }
   drawForceVectors();
-  if(compactCanvas){
-    ctx.fillStyle='#163754';ctx.font='600 31px system-ui, sans-serif';
-    ctx.fillText('WATER JET',42,53);
-    ctx.fillStyle='#526982';ctx.font='27px system-ui, sans-serif';
-    ctx.fillText(`D = ${fmt(S.Dcm,1)} cm     V = ${fmt(S.V,1)} m/s     θ = ${S.theta}°`,42,94);
-    return;
-  }
-  ctx.fillStyle='#163754';ctx.font='600 23px system-ui, sans-serif';
-  ctx.fillText('WATER JET · MOMENTUM BALANCE',42,53);
-  ctx.fillStyle='#526982';ctx.font='20px system-ui, sans-serif';
-  ctx.fillText(`ρ = 1000 kg/m³     D = ${fmt(S.Dcm,1)} cm     V = ${fmt(S.V,1)} m/s     θ = ${S.theta}°`,42,86);
-  ctx.strokeStyle='#cbddee';ctx.beginPath();ctx.moveTo(42,515);ctx.lineTo(1165,515);ctx.stroke();
+  ctx.fillStyle='#526982';ctx.font=`${compactCanvas ? 27 : 20}px system-ui, sans-serif`;
+  ctx.fillText(`D = ${fmt(S.Dcm,1)} cm`,42,compactCanvas ? 76 : 86);
+  if(compactCanvas) return;
   drawArrow(62,570,107,570,'#526982',2);drawArrow(62,570,62,531,'#526982',2);
   ctx.font='17px system-ui, sans-serif';ctx.fillStyle='#526982';ctx.fillText('+x',116,576);ctx.fillText('+y',49,527);
-  ctx.fillStyle=blue;ctx.font='600 19px system-ui, sans-serif';ctx.fillText('Blue arrows · water velocity',190,555);
-  ctx.fillStyle='#c2410c';ctx.fillText('Orange arrows · force on vane',565,555);
-  ctx.font='17px system-ui, sans-serif';ctx.fillStyle='#64748b';ctx.fillText('Schematic · steady flow · gravity and losses neglected',190,583);
 }
 function buildCorridor(path){
   const w=currentHalfWidthPx(), offs1=[], offs2=[];
